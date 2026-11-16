@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health Copilot — astronaut self-monitoring (prototype)</title>
+<!--
+  Health Copilot — NASA Space Apps Challenge 2026 prototype.
+  Single file, no build step, no dependencies. Open index.html in a browser.
+  All crew health data is SIMULATED. Not a medical device.
+  Code written with assistance from an AI tool (Claude, Anthropic); see README.
+-->
+<style>
+:root{--bg:#0a0f18;--panel:#111927;--panel2:#172235;--line:#24334b;--text:#e6edf5;--mut:#8b9bb0;--acc:#5cc8e6;
+--l0:#3fbf8f;--l1:#5aa9f0;--l2:#e6c14a;--l3:#f0913a;--l4:#ef5b5b}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+button{font:inherit;color:inherit;cursor:pointer}
+.layout{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:.02em}
+.brand small{display:block;color:var(--mut);font-weight:400;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:0 0 6px 4px}
+.navb,.crewb{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:8px 10px;color:var(--text)}
+.navb:hover,.crewb:hover{background:var(--panel2)}
+.navb.on,.crewb.on{background:var(--panel2);border-color:var(--line)}
+.navb.on{box-shadow:inset 3px 0 0 var(--acc)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.crewb span.r{color:var(--mut);font-size:12px;display:block}
+.sim{border:1px dashed var(--l2);color:var(--l2);border-radius:6px;padding:6px 8px;font-size:11.5px;line-height:1.35}
+main{display:flex;flex-direction:column;min-width:0}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+.clock b{font-size:20px}
+.clock span{color:var(--mut);font-size:12px;display:block}
+.dayctl{display:flex;align-items:center;gap:6px;flex:1;min-width:220px}
+.dayctl input{flex:1;accent-color:var(--acc)}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:#04202a;border-color:var(--acc);font-weight:650}
+.btn.sm{padding:3px 9px}
+#view{padding:22px;max-width:1180px;width:100%}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0 0 10px;letter-spacing:.02em}
+.sub{color:var(--mut);margin:0 0 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.g2{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
+.status{display:grid;grid-template-columns:8px 1fr auto;gap:16px;align-items:center;padding:0;overflow:hidden}
+.status .bar{align-self:stretch}
+.status .body{padding:16px 0}
+.status .act{padding:16px}
+.lvl{font-size:12px;letter-spacing:.12em;font-weight:700}
+.status h1{font-size:24px;margin:2px 0 6px}
+.tile .v{font-size:24px;font-weight:600}
+.tile .u{color:var(--mut);font-size:13px;margin-left:3px}
+.tile .n{color:var(--mut);font-size:12.5px}
+.tile .dv{font-size:12.5px}
+.tag{display:inline-block;border:1px solid currentColor;border-radius:99px;font-size:11px;padding:1px 8px;letter-spacing:.05em}
+ul.clean{margin:0;padding-left:18px}ul.clean li{margin:6px 0}
+ol.steps{margin:0;padding-left:20px}ol.steps li{margin:8px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+tr.hit td{background:var(--panel2)}
+pre.rep{background:#060a11;border:1px solid var(--line);border-radius:8px;padding:14px;white-space:pre-wrap;font-size:12.5px;line-height:1.55;margin:0}
+.prog{height:8px;background:var(--panel2);border-radius:9px;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;background:var(--acc);width:0}
+.note{color:var(--mut);font-size:12.5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:none;border-radius:99px;padding:3px 11px;font-size:13px}
+.chip.on{border-color:var(--acc);color:var(--acc)}
+svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.modal{position:fixed;inset:0;background:rgba(3,6,12,.82);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal .card{width:min(560px,100%)}
+.pvt{height:220px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#060a11;font-size:54px;user-select:none;cursor:pointer;margin:12px 0}
+.sl{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;margin:8px 0}
+.sl input{accent-color:var(--acc)}
+#cap{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#06202b;border:1px solid var(--acc);border-radius:12px;padding:12px 16px;max-width:min(760px,92vw);z-index:15;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#cap b{color:var(--acc);font-size:11px;letter-spacing:.1em}
+@media(max-width:820px){.layout{grid-template-columns:1fr}aside{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}.g2{grid-template-columns:1fr}.status{grid-template-columns:8px 1fr}.status .act{grid-column:2;padding:0 0 16px}}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside id="side"></aside>
+  <main>
+    <div class="top" id="top"></div>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="cap"></div>
+<div id="modal"></div>
+
+<!-- ================= CORE: data generation + detection + triage (no DOM) ================= -->
+<script id="core">
+(function (G) {
+  const DAYS = 250, PRE = 30;          // 250-day transit, 30-day pre-flight baseline
+  const LAM = 0.25;                    // EWMA smoothing weight
+  const H1 = 1.13;                     // EWMA control limit, L=3:  3*sqrt(LAM/(2-LAM))
+  const H2 = 1.9;                      // strong deviation, L=5
+
+  function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function gauss(r) { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); }
+
+  // bad: which direction is adverse. abs: report change in units instead of percent.
+  const METRICS = {
+    hrv:      { label: 'HRV (RMSSD)',        unit: 'ms',  dom: 'cardio',     bad: 'low',  sd: 5,    dec: 0 },
+    rhr:      { label: 'Resting heart rate', unit: 'bpm', dom: 'cardio',     bad: 'high', sd: 2.5,  dec: 0 },
+    spo2:     { label: 'SpO₂',               unit: '%',   dom: 'cardio',     bad: 'low',  sd: 0.6,  dec: 1, abs: true },
+    sleepH:   { label: 'Sleep duration',     unit: 'h',   dom: 'sleep',      bad: 'low',  sd: 0.5,  dec: 1 },
+    sleepEff: { label: 'Sleep efficiency',   unit: '%',   dom: 'sleep',      bad: 'low',  sd: 3,    dec: 0, abs: true },
+    rt:       { label: 'Reaction time',      unit: 'ms',  dom: 'vigilance',  bad: 'high', sd: 14,   dec: 0 },
+    lapses:   { label: 'Reaction lapses',    unit: '',    dom: 'vigilance',  bad: 'high', sd: 0.9,  dec: 0, abs: true, int: true },
+    mood:     { label: 'Mood (self-rated)',  unit: '/10', dom: 'behavioral', bad: 'low',  sd: 0.7,  dec: 0, abs: true, int: true },
+    fatigue:  { label: 'Fatigue (self-rated)', unit: '/10', dom: 'behavioral', bad: 'high', sd: 0.8, dec: 0, abs: true, int: true },
+    stress:   { label: 'Stress (self-rated)', unit: '/10', dom: 'behavioral', bad: 'high', sd: 0.8, dec: 0, abs: true, int: true },
+    activity: { label: 'Exercise',           unit: 'min', dom: 'physical',   bad: 'low',  sd: 14,   dec: 0 },
+    temp:     { label: 'Skin temperature',   unit: '°C',  dom: 'physical',   bad: 'both', sd: 0.25, dec: 1, abs: true },
+    mass:     { label: 'Body mass',          unit: 'kg',  dom: 'physical',   bad: 'low',  sd: 0.35, dec: 1 }
+  };
+  const KEYS = Object.keys(METRICS);
+
+  // Fictional crew. Any resemblance to real people is coincidental.
+  const CREW = [
+    { id: 'chen',  name: 'Mei Chen',       role: 'Flight Engineer', seed: 1101, base: { hrv: 62, rhr: 54, spo2: 97.6, sleepH: 7.1, sleepEff: 90, rt: 262, lapses: 1, mood: 8, fatigue: 3, stress: 3, activity: 120, temp: 33.8, mass: 61.5 } },
+    { id: 'okafor', name: 'Daniel Okafor', role: 'Commander',       seed: 2207, base: { hrv: 55, rhr: 58, spo2: 97.2, sleepH: 6.8, sleepEff: 88, rt: 275, lapses: 1, mood: 7, fatigue: 3, stress: 4, activity: 125, temp: 34.0, mass: 82.0 } },
+    { id: 'ramirez', name: 'Sofia Ramirez', role: 'Mission Specialist', seed: 3313, base: { hrv: 68, rhr: 52, spo2: 97.8, sleepH: 7.3, sleepEff: 91, rt: 255, lapses: 1, mood: 8, fatigue: 2, stress: 3, activity: 115, temp: 33.6, mass: 58.0 } },
+    { id: 'lindqvist', name: 'Erik Lindqvist', role: 'Pilot', seed: 4421, base: { hrv: 58, rhr: 56, spo2: 97.4, sleepH: 7.0, sleepEff: 89, rt: 268, lapses: 1, mood: 7, fatigue: 3, stress: 3, activity: 120, temp: 33.9, mass: 77.0 } }
+  ];
+
+  const ramp = (d, a, b) => d <= a ? 0 : d >= b ? 1 : (d - a) / (b - a);
+  const idx = d => d < 0 ? d + PRE : d + PRE - 1;      // d = -30..-1 (pre-flight), 1..250 (flight)
+
+  // Injected scenarios: additive change to each metric on flight day d.
+  function effects(c, d) {
+    const b = c.base;
+    if (c.id === 'chen') {            // sleep disruption -> fatigue; she follows the recommendation on day 140
+      const e = d <= 140 ? ramp(d, 134, 140) : Math.exp(-(d - 140) / 1.5), s = e * e; // self-ratings lag behind physiology
+      return { sleepH: -1.6 * e, sleepEff: -11 * e, hrv: -0.28 * b.hrv * e, rhr: 5 * e, rt: 55 * e, lapses: 4.5 * e, fatigue: 3.2 * s, mood: -1.6 * s, stress: 1.5 * s };
+    }
+    if (c.id === 'okafor') {          // skipped exercise -> cardiovascular deconditioning
+      const off = d > 205 ? Math.exp(-(d - 205) / 8) : 1;
+      return { activity: -50 * ramp(d, 150, 162) * off, rhr: 8 * ramp(d, 155, 185) * off, hrv: -0.16 * b.hrv * ramp(d, 155, 185) * off };
+    }
+    if (c.id === 'ramirez') {         // gradual behavioral health decline
+      const e = (d > 225 ? Math.exp(-(d - 225) / 6) : 1) * ramp(d, 185, 205);
+      return { mood: -2.6 * e, stress: 2.6 * e, sleepEff: -7 * e };
+    }
+    return {};
+  }
+
+  function generate(c) {
+    const r = rng(c.seed), data = {};
+    KEYS.forEach(k => data[k] = new Array(PRE + DAYS));
+    for (let i = 0; i < PRE + DAYS; i++) {
+      const d = i < PRE ? i - PRE : i - PRE + 1, ef = d > 0 ? effects(c, d) : {};
+      for (const k of KEYS) {
+        const m = METRICS[k];
+        let v = c.base[k] + m.sd * gauss(r) + (ef[k] || 0);
+        if (k === 'mass' && d > 0) v -= 0.001 * d;
+        if (m.int) v = Math.round(v);
+        if (k === 'lapses' || k === 'activity') v = Math.max(0, v);
+        if (m.unit === '/10') v = Math.min(10, Math.max(1, v));
+        if (k === 'spo2') v = Math.min(100, v);
+        data[k][i] = v;
+      }
+    }
+    return data;
+  }
+
+  // Personal baseline = mean and SD of the 30 pre-flight days.
+  function baseline(c) {
+    const bl = {};
+    for (const k of KEYS) {
+      const xs = c.data[k].slice(0, PRE), mean = xs.reduce((a, b) => a + b, 0) / PRE;
+      const sd = Math.sqrt(xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (PRE - 1));
+      bl[k] = { mean, sd: Math.max(sd, METRICS[k].sd * 0.6) };
+    }
+    return bl;
+  }
+
+  // EWMA of z-scores vs personal baseline; s = deviation in the adverse direction; run = consecutive days beyond limit.
+  function analyze(c) {
+    c.bl = baseline(c); c.an = {};
+    for (const k of KEYS) {
+      const m = METRICS[k], b = c.bl[k], s = new Array(DAYS + 1).fill(0), run = new Array(DAYS + 1).fill(0);
+      let ew = 0;
+      for (let d = 1; d <= DAYS; d++) {
+        const z = (c.data[k][idx(d)] - b.mean) / b.sd;
+        ew = LAM * z + (1 - LAM) * ew;
+        s[d] = m.bad === 'low' ? -ew : m.bad === 'high' ? ew : Math.abs(ew);
+        run[d] = s[d] > H1 ? run[d - 1] + 1 : 0;
+      }
+      c.an[k] = { s, run };
+    }
+    c.raw = []; c.level = new Array(DAYS + 1).fill(0);
+    let streak = 0;
+    for (let d = 1; d <= DAYS; d++) {
+      const a = assessRaw(c, d); c.raw[d] = a;
+      streak = a.level >= 3 ? streak + 1 : 0;
+      a.escalated = a.level === 3 && streak > 10 && !(d > 3 && a.score < 0.7 * c.raw[d - 3].score);
+      c.level[d] = a.escalated ? 4 : a.level;
+    }
+  }
+
+  const fmt = (k, v) => v.toFixed(METRICS[k].dec);
+
+  function hardLimits(c, d) {
+    const g = k => c.data[k][idx(d)], out = [];
+    if (g('spo2') < 92) out.push('SpO₂ is ' + fmt('spo2', g('spo2')) + '% (fixed limit: below 92%).');
+    if (g('rhr') > 100) out.push('Resting heart rate is ' + fmt('rhr', g('rhr')) + ' bpm (fixed limit: above 100 bpm).');
+    if (g('temp') - c.bl.temp.mean >= 1.5) out.push('Skin temperature is ' + (g('temp') - c.bl.temp.mean).toFixed(1) + ' °C above your baseline (fixed limit: +1.5 °C).');
+    return out;
+  }
+
+  function assessRaw(c, d) {
+    const flags = [];
+    for (const k of KEYS) {
+      const n = c.an[k].run[d]; if (!n) continue;
+      const m = METRICS[k], b = c.bl[k], s = c.an[k].s[d];
+      let sum = 0; for (let x = d - n + 1; x <= d; x++) sum += c.data[k][idx(x)];
+      const avg = sum / n, diff = avg - b.mean, dir = diff < 0 ? 'below' : 'above';
+      const amount = m.abs ? Math.abs(diff).toFixed(1) + (m.unit === '/10' || m.unit === '%' ? ' points' : m.unit === '' ? ' per test' : ' ' + m.unit) : Math.round(Math.abs(diff / b.mean) * 100) + '%';
+      const text = m.label + ' has averaged ' + amount + ' ' + dir + ' your personal baseline for ' + n + ' day' + (n > 1 ? 's' : '') +
+        ' (' + avg.toFixed(m.dec || 1) + ' vs ' + b.mean.toFixed(m.dec || 1) + (m.unit ? ' ' + m.unit : '') + ').';
+      flags.push({ key: k, days: n, s, strong: s > H2, persistent: n >= 3, avg, amount, dir, text, short: m.label + ' ' + (diff < 0 ? '-' : '+') + amount + ' / ' + n + 'd' });
+    }
+    flags.sort((a, b) => b.s - a.s);
+    const pers = flags.filter(f => f.persistent), doms = new Set(pers.map(f => METRICS[f.key].dom)), has = k => pers.some(f => f.key === k);
+    const hard = hardLimits(c, d);
+    let level = 0, rule = 5;
+    if (hard.length) { level = 4; rule = 1; }
+    else if ((pers.length >= 3 && doms.size >= 2) || pers.some(f => f.strong && f.days >= 7)) { level = 3; rule = 2; }
+    else if (pers.length) { level = 2; rule = 3; }
+    else if (flags.length) { level = 1; rule = 4; }
+    let pattern = 'generic';
+    const any = k => flags.some(f => f.key === k), vig = has('rt') || has('lapses');
+    if (((any('sleepH') || any('sleepEff')) && (has('hrv') || vig || has('fatigue'))) || (vig && has('hrv'))) pattern = 'sleep';
+    else if (has('activity')) pattern = 'decond';
+    else if (has('mood') || has('stress')) pattern = 'behav';
+    const score = flags.reduce((a, f) => a + f.s, 0);
+    return { level, rule, flags, pers, hard, pattern, score };
+  }
+
+  const LEVELS = [
+    { name: 'NOMINAL', head: 'All indicators within your personal baseline' },
+    { name: 'MONITOR', head: 'Early change — keep an eye on it' },
+    { name: 'REPEAT MEASUREMENT', head: 'A sustained change in one area' },
+    { name: 'SELF-CARE ACTION', head: 'A multi-signal trend needs action today' },
+    { name: 'CONTACT FLIGHT SURGEON', head: 'Send a priority report to your flight surgeon' }
+  ];
+  const PATTERNS = {
+    sleep: { name: 'Sleep disruption / fatigue pattern', steps: [
+      'Tonight: protect an 8-hour sleep window. Dim cabin lighting and stop screen use 60 minutes before sleep; get 30 minutes of bright light after waking.',
+      'Move your caffeine cut-off to 8 hours before sleep. Where the schedule allows, hand safety-critical tasks to a rested crewmate.',
+      'Repeat the reaction-time check-in tomorrow at the same time of day.',
+      'An Earth report is ready for flight-surgeon review at the next conference. No real-time reply is needed.' ] },
+    decond: { name: 'Cardiovascular deconditioning pattern', steps: [
+      'Resume the full prescribed exercise countermeasures (aerobic and resistive) and log every session.',
+      'Re-measure resting heart rate on waking for the next 3 days, same time and sensor position.',
+      'If you notice chest pain, palpitations, fainting or breathlessness at rest, treat it as urgent: follow the onboard medical checklist and contact the flight surgeon.',
+      'An Earth report is ready for flight-surgeon review.' ] },
+    behav: { name: 'Behavioral health pattern', steps: [
+      'Request a private conference with the behavioral health team (asynchronous message).',
+      'Protect personal time and family contact this week. Reviewing workload with the commander is your choice.',
+      'Keep doing the daily check-in. Your self-ratings stay private unless you choose to send them.',
+      'An Earth report is ready if you choose to send it.' ] },
+    generic: { name: 'Multi-signal change', steps: [
+      'Repeat the flagged measurements tomorrow under the same conditions (sensor fit, time of day).',
+      'Review sleep, workload and exercise for the past week for an obvious cause.',
+      'An Earth report is ready for flight-surgeon review.' ] }
+  };
+  const RULES = [
+    { n: 1, when: 'Any fixed safety limit crossed (SpO₂ < 92%, resting HR > 100 bpm, skin temp ≥ +1.5 °C over baseline)', then: 'CONTACT FLIGHT SURGEON — priority report, onboard medical checklist, re-measure immediately' },
+    { n: 2, when: '3 or more indicators beyond personal limits for 3+ days across 2+ body systems, OR one strong deviation for 7+ days', then: 'SELF-CARE ACTION matched to the pattern + repeat test + Earth report (escalates to flight surgeon if unchanged after 10 days)' },
+    { n: 3, when: '1–2 indicators beyond personal limits for 3+ days', then: 'REPEAT MEASUREMENT under the same conditions; no other action yet' },
+    { n: 4, when: 'Any indicator beyond its limit for 1–2 days', then: 'MONITOR — too early to call a trend' },
+    { n: 5, when: 'None of the above', then: 'NOMINAL' }
+  ];
+
+  function assess(c, d) {
+    const a = Object.assign({}, c.raw[d]); a.level = c.level[d];
+    const L = LEVELS[a.level], P = PATTERNS[a.pattern];
+    a.name = L.name; a.head = L.head; a.patternName = a.level >= 3 && !a.hard.length ? P.name : '';
+    a.recovering = a.level >= 1 && d > 3 && c.raw[d - 3].level >= 2 && a.score < 0.7 * c.raw[d - 3].score;
+    if (a.hard.length) a.steps = ['Send a priority Earth report to the flight surgeon now.', 'Follow the onboard medical checklist for this symptom.', 'Repeat the measurement immediately to rule out a sensor error.'];
+    else if (a.escalated) a.steps = ['This pattern has lasted more than 10 days despite self-care. Send a priority Earth report and request a flight-surgeon consult.'].concat(P.steps.slice(0, 2));
+    else if (a.level === 3) a.steps = P.steps;
+    else if (a.level === 2) a.steps = ['Repeat this measurement tomorrow under the same conditions (sensor fit, time of day) to rule out a sensor problem or a one-off cause.', 'No other action is needed yet. Health Copilot keeps watching the trend.'];
+    else if (a.level === 1) a.steps = ['Nothing to do. This is an early change that ordinary day-to-day variation can produce.'];
+    else a.steps = ['Nothing to do. Complete today’s check-in to keep your baseline current.'];
+    a.why = a.hard.concat(a.flags.map(f => f.text + (f.persistent ? '' : ' Too early to call a trend.')));
+    return a;
+  }
+
+  // Simulated trajectory: Earth–spacecraft distance grows to 1.5 AU at arrival. 1 AU = 499 light-seconds.
+  const lightSec = d => Math.round(499 * 1.5 * Math.pow(d / DAYS, 1.3));
+  // Radiation (simulated): 1.84 mSv/day galactic cosmic ray dose equivalent in cruise (MSL/RAD, Zeitlin et al. 2013) + one solar particle event on day 172.
+  const SPE_DAY = 172, SPE_DOSE = 30, DOSE_LIMIT = 600;
+  const dose = d => 1.84 * d + (d >= SPE_DAY ? SPE_DOSE : 0);
+
+  function build(overrides) {
+    const crew = CREW.map(c => Object.assign({}, c));
+    crew.forEach(c => {
+      c.data = generate(c);
+      const o = (overrides || {})[c.id] || {};
+      for (const d in o) for (const k in o[d]) if (c.data[k]) c.data[k][idx(+d)] = o[d][k];
+      analyze(c);
+    });
+    return crew;
+  }
+
+  G.HC = { DAYS, PRE, LAM, H1, H2, METRICS, KEYS, LEVELS, RULES, PATTERNS, idx, build, assess, analyze, lightSec, dose, SPE_DAY, DOSE_LIMIT, fmt };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<!-- ================= UI ================= -->
+<script>
+(function () {
+  const H = window.HC, $ = id => document.getElementById(id);
+  const COL = ['var(--l0)', 'var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l4)'];
+  const NASA_KEY = 'DEMO_KEY';   // free key from api.nasa.gov raises the rate limit
+  const store = { get(k, f) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch (e) { return f; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+
+  let overrides = store.get('hc_checkins', {});
+  let crew = H.build(overrides);
+  const S = { day: 140, who: 'chen', view: 'today', range: 60, sent: {}, donki: store.get('hc_donki', null), demo: false };
+  const cur = () => crew.find(c => c.id === S.who);
+  const mmss = s => Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
+  const val = (c, k, d) => c.data[k][H.idx(d)];
+
+  const NAV = [['today', 'Today'], ['trends', 'Trends'], ['alert', 'Alert detail'], ['report', 'Earth report'], ['crew', 'Crew overview'], ['method', 'How it works']];
+
+  function renderSide() {
+    $('side').innerHTML = `
+      <div class="brand"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="5" fill="var(--acc)"/><ellipse cx="15" cy="15" rx="13" ry="6" fill="none" stroke="var(--acc)" stroke-width="1.4" transform="rotate(-28 15 15)"/></svg>
+        <div>Health Copilot<small>Crew self-monitoring</small></div></div>
+      <div><p class="lab">Crew member</p>${crew.map(c => `<button class="crewb ${c.id === S.who ? 'on' : ''}" onclick="UI.who('${c.id}')"><i class="dot" style="background:${COL[c.level[S.day]]}"></i><span>${c.name}<span class="r">${c.role}</span></span></button>`).join('')}</div>
+      <div><p class="lab">Views</p>${NAV.map(n => `<button class="navb ${S.view === n[0] ? 'on' : ''}" onclick="UI.go('${n[0]}')">${n[1]}</button>`).join('')}</div>
+      <div class="sim"><b>SIMULATED DATA.</b> All crew and health values are generated, not real. Prototype decision-support tool, not a medical device.</div>`;
+  }
+
+  function renderTop() {
+    const ls = H.lightSec(S.day);
+    $('top').innerHTML = `
+      <div class="clock"><b class="mono" id="mdl">MISSION DAY ${S.day}</b><span>of ${H.DAYS} · Earth–Mars transit (simulated)</span></div>
+      <div class="dayctl"><button class="btn sm" onclick="UI.day(${S.day - 1})" aria-label="Previous day">◀</button>
+        <input type="range" min="1" max="${H.DAYS}" value="${S.day}" oninput="UI.slide(+this.value)" aria-label="Mission day">
+        <button class="btn sm" onclick="UI.day(${S.day + 1})" aria-label="Next day">▶</button></div>
+      <div class="clock"><b class="mono" id="lsl">${mmss(ls)}</b><span>one-way signal delay to Earth</span></div>
+      <button class="btn pri" onclick="UI.demo()">${S.demo ? '■ Stop demo' : '▶ Play demo'}</button>`;
+  }
+
+  // ---------- charts ----------
+  function chart(c, k, d, range, W, Ht) {
+    const m = H.METRICS[k], b = c.bl[k], d0 = Math.max(1, d - range + 1), L = 38, R = 8, T = 8, B = 18;
+    let lo = b.mean - 2.6 * b.sd, hi = b.mean + 2.6 * b.sd;
+    for (let x = d0; x <= d; x++) { const v = val(c, k, x); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+    const X = x => L + (x - d0) / Math.max(1, d - d0) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (Ht - T - B);
+    let path = '', pts = '';
+    for (let x = d0; x <= d; x++) {
+      const v = val(c, k, x); path += (x === d0 ? 'M' : 'L') + X(x).toFixed(1) + ' ' + Y(v).toFixed(1);
+      const n = c.an[k].run[x]; if (n) pts += `<circle cx="${X(x).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${n >= 3 ? 3 : 2.2}" fill="${n >= 3 ? 'var(--l3)' : 'var(--l1)'}"/>`;
+    }
+    const yb1 = Y(b.mean + 2 * b.sd), yb2 = Y(b.mean - 2 * b.sd);
+    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="${m.label} over the last ${d - d0 + 1} days with personal baseline band">
+      <rect x="${L}" y="${yb1}" width="${W - L - R}" height="${yb2 - yb1}" fill="#5cc8e6" opacity=".10"/>
+      <line x1="${L}" x2="${W - R}" y1="${Y(b.mean)}" y2="${Y(b.mean)}" stroke="#5cc8e6" stroke-dasharray="3 4" opacity=".6"/>
+      <path d="${path}" fill="none" stroke="#c9d6e6" stroke-width="1.4"/>${pts}
+      <text x="${L - 5}" y="${yb1 + 3}" text-anchor="end">${(b.mean + 2 * b.sd).toFixed(m.dec || 1)}</text>
+      <text x="${L - 5}" y="${Y(b.mean) + 3}" text-anchor="end">${b.mean.toFixed(m.dec || 1)}</text>
+      <text x="${L - 5}" y="${yb2 + 3}" text-anchor="end">${(b.mean - 2 * b.sd).toFixed(m.dec || 1)}</text>
+      <text x="${L}" y="${Ht - 4}">MD ${d0}</text><text x="${W - R}" y="${Ht - 4}" text-anchor="end">MD ${d}</text></svg>`;
+  }
+  function spark(c, k, d) {
+    const d0 = Math.max(1, d - 13), vs = []; for (let x = d0; x <= d; x++) vs.push(val(c, k, x));
+    const lo = Math.min(...vs), hi = Math.max(...vs), W = 180, Ht = 30;
+    const p = vs.map((v, i) => (i ? 'L' : 'M') + (i / Math.max(1, vs.length - 1) * W).toFixed(1) + ' ' + (3 + (1 - (v - lo) / (hi - lo || 1)) * (Ht - 6)).toFixed(1)).join('');
+    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" height="30" aria-hidden="true"><path d="${p}" fill="none" stroke="#8b9bb0" stroke-width="1.3"/></svg>`;
+  }
+
+  // ---------- views ----------
+  function statusCard(c, a, withBtn) {
+    return `<div class="card status"><div class="bar" style="background:${COL[a.level]}"></div>
+      <div class="body"><div class="lvl" style="color:${COL[a.level]}">${a.name}${a.recovering ? ' · TREND RECOVERING' : ''}</div>
+        <h1>${a.recovering && a.level < 3 ? 'Your indicators are moving back toward baseline' : a.head}</h1>
+        <div>${a.patternName ? '<b>' + a.patternName + '.</b> ' : ''}${a.why[0] || 'No indicator is outside your personal limits.'}${a.why.length > 1 ? ` <span class="note">+${a.why.length - 1} more</span>` : ''}</div></div>
+      ${withBtn ? `<div class="act"><button class="btn ${a.level >= 2 ? 'pri' : ''}" onclick="UI.go('alert')">Why, and what do I do?</button></div>` : ''}</div>`;
+  }
+
+  const V = {};
+  V.today = c => {
+    const a = H.assess(c, S.day), ov = ((overrides[c.id] || {})[S.day]);
+    const tiles = ['hrv', 'rhr', 'sleepH', 'sleepEff', 'rt', 'lapses', 'spo2', 'activity'].map(k => {
+      const m = H.METRICS[k], b = c.bl[k], v = val(c, k, S.day), n = c.an[k].run[S.day];
+      const col = n >= 3 ? 'var(--l3)' : n ? 'var(--l1)' : 'var(--mut)';
+      return `<div class="card tile"><div class="n">${m.label}</div><div><span class="v mono">${H.fmt(k, v)}</span><span class="u">${m.unit}</span></div>
+        <div class="dv" style="color:${col}">${n ? (n >= 3 ? 'Outside your limits · ' : 'Early change · ') + n + ' d' : 'Within your baseline'} <span class="note">(baseline ${b.mean.toFixed(m.dec || 1)})</span></div>${spark(c, k, S.day)}</div>`;
+    }).join('');
+    return `<h1>Today · ${c.name}</h1><p class="sub">Your status at a glance, compared with your own pre-flight baseline.</p>
+      ${statusCard(c, a, true)}
+      <div class="grid g4" style="margin:14px 0">${tiles}</div>
+      <div class="card"><h2>Daily check-in</h2>
+        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+          <div>Reaction time <b class="mono">${H.fmt('rt', val(c, 'rt', S.day))} ms</b> · lapses <b class="mono">${val(c, 'lapses', S.day)}</b></div>
+          <div>Mood <b class="mono">${val(c, 'mood', S.day)}</b> · fatigue <b class="mono">${val(c, 'fatigue', S.day)}</b> · stress <b class="mono">${val(c, 'stress', S.day)}</b> <span class="note">/10</span></div>
+          <span class="tag" style="color:${ov ? 'var(--l0)' : 'var(--mut)'}">${ov ? 'ENTERED BY YOU' : 'SIMULATED ENTRY'}</span>
+          <button class="btn" onclick="UI.checkin()" style="margin-left:auto">${ov ? 'Redo check-in' : 'Do the check-in yourself'}</button></div>
+        <p class="note" style="margin:10px 0 0">A short reaction-time test plus three self-ratings. Results feed the same baseline system as the sensors.</p></div>`;
+  };
+
+  V.trends = c => {
+    const charts = H.KEYS.map(k => { const m = H.METRICS[k], n = c.an[k].run[S.day];
+      return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">${m.label} <span class="note">${m.unit}</span></h2>${n ? `<span class="tag" style="color:${n >= 3 ? 'var(--l3)' : 'var(--l1)'}">${n >= 3 ? 'OUTSIDE LIMITS' : 'EARLY CHANGE'} · ${n} d</span>` : ''}</div>${chart(c, k, S.day, S.range, 520, 150)}</div>`; }).join('');
+    return `<h1>Trends · ${c.name}</h1><p class="sub">Shaded band = your normal range (pre-flight mean ± 2 SD). Dashed line = your baseline. Blue dots = early change; orange dots = outside your limits for 3+ days.</p>
+      <div class="chips">${[30, 60, 120, 250].map(r => `<button class="chip ${S.range === r ? 'on' : ''}" onclick="UI.range(${r})">${r === 250 ? 'Whole mission' : 'Last ' + r + ' days'}</button>`).join('')}</div>
+      <div class="grid g2">${charts}</div>`;
+  };
+
+  V.alert = c => {
+    const a = H.assess(c, S.day);
+    return `<h1>Alert detail · ${c.name}</h1><p class="sub">Every status comes with the reason and a next step. You decide what to act on.</p>
+      ${statusCard(c, a, false)}
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card"><h2>Why am I seeing this?</h2>${a.why.length ? `<ul class="clean">${a.why.map(w => `<li>${w}</li>`).join('')}</ul>` : '<p class="note">No indicator is outside your personal limits today.</p>'}
+          ${a.flags[0] ? chart(c, a.flags[0].key, S.day, 45, 520, 150) + `<p class="note">${H.METRICS[a.flags[0].key].label}, last 45 days.</p>` : ''}</div>
+        <div class="card"><h2>What do I do now?</h2><ol class="steps">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+          ${a.level >= 2 ? `<button class="btn pri" onclick="UI.go('report')">Open Earth report</button>` : ''}
+          <p class="note" style="margin-top:14px">Guidance is conservative, rule-based decision support. It does not diagnose. A flight system would need clinical validation and flight-surgeon-approved protocols.</p></div>
+      </div>
+      <div class="card" style="margin-top:14px"><h2>Decision table (the rule that fired is highlighted)</h2>
+        <table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr class="${r.n === a.rule ? 'hit' : ''}"><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div>`;
+  };
+
+  function reportText(c, a) {
+    const ls = H.lightSec(S.day);
+    return [
+      'HEALTH COPILOT // EARTH REPORT // SIMULATED DATA',
+      'MD ' + S.day + ' | CREW ' + c.name.toUpperCase() + ' (' + c.role + ')',
+      'TRIAGE L' + a.level + ' ' + a.name + (a.recovering ? ' (TREND RECOVERING)' : ''),
+      a.patternName ? 'PATTERN ' + a.patternName : null,
+      'FIXED LIMITS ' + (a.hard.length ? a.hard.join(' ') : 'none crossed'),
+      'FLAGS ' + (a.flags.length ? a.flags.map(f => f.short).join('; ') : 'none'),
+      'ACTION ' + a.steps[0],
+      'REQUEST ' + (a.level >= 4 ? 'PRIORITY flight-surgeon consult' : a.level >= 2 ? 'review at next scheduled conference; no real-time reply needed' : 'none; routine status'),
+      'ONE-WAY LIGHT TIME ' + mmss(ls) + ' | EARLIEST REPLY +' + mmss(2 * ls)
+    ].filter(Boolean).join('\n');
+  }
+  V.report = c => {
+    const a = H.assess(c, S.day), txt = reportText(c, a), key = c.id + S.day, st = S.sent[key], ls = H.lightSec(S.day);
+    return `<h1>Earth report · ${c.name}</h1><p class="sub">A compact summary for mission control. At this distance a question and its answer are at least ${mmss(2 * ls)} apart, so the report is written to stand on its own.</p>
+      <div class="card"><pre class="rep mono">${txt}</pre>
+        <p class="note" style="margin:10px 0">${new Blob([txt]).size} bytes of plain text. Self-ratings are included only when the crew member sends the report.</p>
+        ${st ? `<div class="prog"><i id="pbar" style="width:${st === 'done' ? 100 : 0}%"></i></div><div id="pmsg">${st === 'done' ? `Delivered to mission control after ${mmss(ls)}. Earliest possible reply in another ${mmss(ls)}.` : 'Transmitting…'}</div>` : `<button class="btn pri" onclick="UI.send()">Send to Earth</button>`}
+      </div>
+      <div class="card" style="margin-top:14px"><h2>What you can do while you wait</h2><ol class="steps">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol></div>`;
+  };
+
+  V.crew = () => {
+    const dose = H.dose(S.day), pct = Math.min(100, dose / H.DOSE_LIMIT * 100);
+    const avg = k => (crew.reduce((s, c) => s + val(c, k, S.day), 0) / crew.length).toFixed(1);
+    const cards = crew.map(c => { const a = H.assess(c, S.day);
+      return `<div class="card" style="border-left:6px solid ${COL[a.level]}"><div class="lvl" style="color:${COL[a.level]}">${a.name}${a.recovering ? ' · RECOVERING' : ''}</div><h2 style="margin:4px 0">${c.name}</h2><div class="note">${c.role}</div>
+        <p style="margin:8px 0">${a.level >= 2 ? a.flags.filter(f => f.persistent).length + ' indicator(s) outside personal limits' : 'No sustained changes'}</p>
+        <button class="btn sm" onclick="UI.who('${c.id}','today')">Open</button></div>`; }).join('');
+    const dk = S.donki;
+    return `<h1>Crew overview</h1><p class="sub">Shared view. Shows triage level only; individual numbers and self-ratings stay on each person’s own screen.</p>
+      <div class="grid g4">${cards}</div>
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card"><h2>Crew average today (anonymized)</h2><div style="display:flex;gap:26px;flex-wrap:wrap">
+          <div><div class="note">Mood</div><b class="mono" style="font-size:22px">${avg('mood')}</b><span class="note"> /10</span></div>
+          <div><div class="note">Stress</div><b class="mono" style="font-size:22px">${avg('stress')}</b><span class="note"> /10</span></div>
+          <div><div class="note">Sleep</div><b class="mono" style="font-size:22px">${avg('sleepH')}</b><span class="note"> h</span></div></div></div>
+        <div class="card"><h2>Cumulative radiation dose (simulated)</h2>
+          <b class="mono" style="font-size:22px">${dose.toFixed(0)} mSv</b> <span class="note">of ${H.DOSE_LIMIT} mSv career limit (NASA-STD-3001)</span>
+          <div class="prog"><i style="width:${pct}%;background:${pct > 80 ? 'var(--l3)' : 'var(--acc)'}"></i></div>
+          <p class="note">Model: 1.84 mSv/day in cruise, the rate measured by the RAD instrument on the way to Mars (Zeitlin et al., 2013)${S.day >= H.SPE_DAY ? `, plus a simulated solar particle event on day ${H.SPE_DAY}` : ''}.</p></div>
+      </div>
+      <div class="card" style="margin-top:14px"><h2>Space weather relay — real data from NASA DONKI <span class="tag" style="color:var(--l0)">REAL NASA DATA</span></h2>
+        ${dk ? `<div style="display:flex;gap:26px;flex-wrap:wrap"><div><div class="note">Solar flares, last 30 days</div><b class="mono" style="font-size:22px">${dk.flares}</b></div>
+          <div><div class="note">Strongest flare</div><b class="mono" style="font-size:22px">${dk.maxClass || '—'}</b></div>
+          <div><div class="note">Solar energetic particle events</div><b class="mono" style="font-size:22px">${dk.sep}</b></div></div>
+          <p style="margin:10px 0 0">${dk.sep ? 'A solar energetic particle event was reported in the last 30 days (most recent: ' + dk.lastSep + '). Rule: review storm-shelter procedure and log time spent in the shelter.' : 'No solar energetic particle events reported in the last 30 days. No action.'}</p>
+          <p class="note">Fetched ${new Date(dk.at).toLocaleString()} from api.nasa.gov/DONKI and stored on this device, so it stays readable offline. These are today’s real Sun conditions shown next to a simulated mission.</p>` : `<p class="note" id="dkmsg">${S.dkErr || 'No space weather data stored yet.'}</p>`}
+        <button class="btn sm" onclick="UI.donki()">Refresh from NASA</button></div>`;
+  };
+
+  V.method = () => `<h1>How it works</h1><p class="sub">Everything here is simple enough to check by hand. No black-box model.</p>
+    <div class="grid g2">
+      <div class="card"><h2>1 · Personal baseline</h2><p>For each crew member and each of ${H.KEYS.length} indicators, the mean and standard deviation of 30 pre-flight days define that person’s normal. Nobody is compared with a population average.</p>
+        <h2>2 · Drift detection</h2><p>Each day’s value becomes a z-score against the personal baseline. An exponentially weighted moving average (EWMA, weight ${H.LAM}) accumulates small shifts that a fixed threshold would miss. An indicator is beyond its limit when the EWMA passes ${H.H1} in the harmful direction (a standard 3-sigma EWMA control limit).</p>
+        <h2>3 · Triage</h2><p>The decision table turns counts of flagged indicators, how long they have lasted and which body systems they belong to into one of five levels. Three fixed safety limits bypass the baseline entirely.</p></div>
+      <div class="card"><h2>Decision table</h2><table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div>
+      <div class="card"><h2>Data</h2><p><b>Simulated:</b> a 4-person crew, 30 pre-flight days and a 250-day transit, generated in the browser from a fixed seed. Three scenarios are injected (sleep disruption, cardiovascular deconditioning, behavioral health decline) plus one solar particle event. Crew names are fictional.</p>
+        <p><b>Real NASA data:</b> the space weather panel reads solar flare and solar energetic particle events from NASA’s DONKI database (Space Weather Database Of Notifications, Knowledge, Information).</p>
+        <p><b>Parameters from published work:</b> reaction-time lapse = response slower than 500 ms (Basner &amp; Dinges, 2011); cruise radiation 1.84 mSv/day (Zeitlin et al., 2013); 600 mSv career limit (NASA-STD-3001).</p></div>
+      <div class="card"><h2>Limits of this prototype</h2><ul class="clean"><li>Not a diagnostic device. Thresholds and guidance have not been clinically validated.</li><li>Simulated noise is simpler than real physiology: no sensor dropouts, no day-to-day correlation, and no normal adaptation to microgravity.</li><li>Recovery in the demo assumes the crew member follows the recommendation.</li><li>A flight version would re-baseline in flight and use protocols approved by flight surgeons.</li></ul></div>
+    </div>`;
+
+  function render() { renderSide(); renderTop(); $('view').innerHTML = V[S.view](cur()); }
+
+  // ---------- check-in (reaction test + sliders) ----------
+  let pv = null;
+  function checkin() {
+    $('modal').innerHTML = `<div class="modal"><div class="card"><h2>Daily check-in · reaction test</h2>
+      <p class="note" style="margin:0">Click the box (or press space) as soon as the counter appears. 30-second demo version of a psychomotor vigilance test.</p>
+      <div class="pvt mono" id="pvt" onclick="UI.pvtTap()">Click to begin</div>
+      <div style="display:flex;justify-content:space-between"><span class="note" id="pvtinfo">Lapse = slower than 500 ms.</span><button class="btn sm" onclick="UI.close()">Cancel</button></div></div></div>`;
+    pv = { state: 'idle', rts: [], fs: 0 };
+  }
+  function pvtNext() { pv.state = 'wait'; $('pvt').textContent = '·'; $('pvt').style.color = 'var(--mut)'; pv.timer = setTimeout(() => { pv.state = 'go'; pv.shown = performance.now(); $('pvt').style.color = 'var(--l2)'; tick(); }, 1500 + Math.random() * 2500); }
+  function tick() { if (!pv || pv.state !== 'go' || !$('pvt')) return; $('pvt').textContent = Math.round(performance.now() - pv.shown); requestAnimationFrame(tick); }
+  function pvtTap() {
+    if (!pv) return;
+    if (pv.state === 'idle') { pv.t0 = performance.now(); pv.end = setTimeout(pvtDone, 30000); pvtNext(); }
+    else if (pv.state === 'wait') { pv.fs++; clearTimeout(pv.timer); $('pvt').textContent = 'Too early'; pv.state = 'pause'; setTimeout(() => pv && pv.state === 'pause' && pvtNext(), 700); }
+    else if (pv.state === 'go') { const rt = performance.now() - pv.shown; pv.rts.push(rt); pv.state = 'pause'; $('pvt').textContent = Math.round(rt) + ' ms'; $('pvt').style.color = 'var(--text)'; setTimeout(() => pv && pv.state === 'pause' && pvtNext(), 600); }
+  }
+  function pvtDone() {
+    clearTimeout(pv.timer); if (pv.state === 'go') pv.rts.push(performance.now() - pv.shown);
+    pv.state = 'done';
+    const n = pv.rts.length, mean = n ? pv.rts.reduce((a, b) => a + b, 0) / n : 500, lapses = pv.rts.filter(r => r >= 500).length;
+    pv.res = { rt: Math.round(mean), lapses };
+    const sl = (k, l, v) => `<div class="sl"><label for="s_${k}">${l}</label><input id="s_${k}" type="range" min="1" max="10" value="${v}" oninput="this.nextElementSibling.textContent=this.value"><b class="mono">${v}</b></div>`;
+    $('modal').innerHTML = `<div class="modal"><div class="card"><h2>Reaction test complete</h2>
+      <p>Mean reaction time <b class="mono">${pv.res.rt} ms</b> over ${n} responses · lapses <b class="mono">${lapses}</b> · early taps <b class="mono">${pv.fs}</b></p>
+      <h2>How are you today?</h2>${sl('mood', 'Mood', 7)}${sl('fatigue', 'Fatigue', 3)}${sl('stress', 'Stress', 3)}
+      <p class="note">1 = lowest, 10 = highest. Saved on this device only.</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="UI.close()">Discard</button><button class="btn pri" onclick="UI.save()">Save check-in</button></div></div></div>`;
+  }
+  function save() {
+    const o = overrides[S.who] = overrides[S.who] || {};
+    o[S.day] = { rt: pv.res.rt, lapses: pv.res.lapses, mood: +$('s_mood').value, fatigue: +$('s_fatigue').value, stress: +$('s_stress').value };
+    store.set('hc_checkins', overrides); crew = H.build(overrides); close(); render();
+  }
+  function close() { if (pv) { clearTimeout(pv.timer); clearTimeout(pv.end); } pv = null; $('modal').innerHTML = ''; }
+  document.addEventListener('keydown', e => { if (pv && e.code === 'Space') { e.preventDefault(); pvtTap(); } });
+
+  // ---------- Earth report send (time-compressed) ----------
+  function send(ms) {
+    const key = S.who + S.day, ls = H.lightSec(S.day); S.sent[key] = 'going'; render();
+    const t0 = performance.now(), dur = ms || 5000;
+    (function step() {
+      const p = Math.min(1, (performance.now() - t0) / dur), bar = $('pbar'), msg = $('pmsg');
+      if (!bar || S.sent[key] !== 'going') return;
+      bar.style.width = p * 100 + '%'; msg.textContent = 'Signal in transit: ' + mmss(Math.round(p * ls)) + ' of ' + mmss(ls) + ' (time compressed for the demo)';
+      if (p < 1) requestAnimationFrame(step); else { S.sent[key] = 'done'; render(); }
+    })();
+  }
+
+  // ---------- NASA DONKI (real data) ----------
+  async function donki() {
+    const msg = $('dkmsg'); if (msg) msg.textContent = 'Contacting api.nasa.gov…';
+    const iso = t => new Date(t).toISOString().slice(0, 10), end = Date.now(), q = `startDate=${iso(end - 30 * 864e5)}&endDate=${iso(end)}&api_key=${NASA_KEY}`;
+    try {
+      const [f, s] = await Promise.all(['FLR', 'SEP'].map(p => fetch(`https://api.nasa.gov/DONKI/${p}?${q}`).then(r => { if (!r.ok) throw new Error(r.status); return r.text(); }).then(t => t ? JSON.parse(t) : [])));
+      const rank = c => ({ A: 0, B: 1, C: 2, M: 3, X: 4 }[c[0]] || 0) * 100 + parseFloat(c.slice(1) || 0);
+      const classes = f.map(x => x.classType).filter(Boolean).sort((a, b) => rank(b) - rank(a));
+      S.dkErr = ''; S.donki = { at: Date.now(), flares: f.length, maxClass: classes[0] || '', sep: s.length, lastSep: s.length ? String(s[s.length - 1].eventTime || '').slice(0, 10) : '' };
+      store.set('hc_donki', S.donki); if (S.view === 'crew') render();
+    } catch (e) { S.dkErr = 'Could not reach NASA DONKI (offline or rate limit). Nothing stored yet; try again when online.'; const m = $('dkmsg'); if (m) m.textContent = S.dkErr; }
+  }
+
+  // ---------- demo mode ----------
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  function cap(i, n, t) { const el = $('cap'); el.style.display = 'block'; el.innerHTML = `<b>DEMO ${i}/${n}</b><div>${t}</div>`; }
+  async function demo() {
+    if (S.demo) { S.demo = false; $('cap').style.display = 'none'; render(); return; }
+    S.demo = true; const on = () => S.demo, N = 6;
+    const show = async (i, t, ms) => { cap(i, N, t); render(); await wait(ms); };
+    S.who = 'chen'; S.view = 'today'; S.day = 132; S.sent = {};
+    await show(1, 'Mission day 132, en route to Mars. Flight Engineer Chen feels fine and every indicator is inside her personal baseline.', 4500); if (!on()) return;
+    cap(2, N, 'Over the next days her sleep shortens, HRV drifts down and reaction-time lapses rise. Health Copilot starts watching on day 137.');
+    for (let d = 133; d <= 140 && on(); d++) { S.day = d; render(); await wait(1100); } if (!on()) return;
+    await show(3, 'Day 140. Health Copilot has escalated from Monitor to Self-care action: several signals have drifted together. Her own fatigue rating only left its normal range today, three days after the first flag.', 5500); if (!on()) return;
+    S.view = 'alert'; await show(4, 'It explains why in plain language and gives a clear next step: a sleep and light schedule change and a repeat test. The rule that fired is visible.', 7000); if (!on()) return;
+    S.view = 'report'; render(); send(4000);
+    cap(5, N, 'A compact report goes to Earth. A reply is many minutes away, so she already has what she needs to act.'); await wait(6500); if (!on()) return;
+    S.view = 'today';
+    for (let d = 141; d <= 144 && on(); d++) { S.day = d; cap(6, N, 'She follows the plan. Day ' + d + ': the trend is recovering toward her baseline.'); render(); await wait(1600); } if (!on()) return;
+    S.view = 'trends'; S.range = 30; cap(6, N, 'Three days later the drift and the recovery are both visible against her personal baseline. Demo complete.'); render(); await wait(7000);
+    S.demo = false; $('cap').style.display = 'none'; render();
+  }
+
+  window.UI = {
+    go(v) { S.view = v; render(); window.scrollTo(0, 0); },
+    who(id, v) { S.who = id; if (v) S.view = v; render(); },
+    day(d) { S.day = Math.min(H.DAYS, Math.max(1, d)); render(); },
+    range(r) { S.range = r; render(); },
+    slide(d) { S.day = d; $('mdl').textContent = 'MISSION DAY ' + d; $('lsl').textContent = mmss(H.lightSec(d)); renderSide(); $('view').innerHTML = V[S.view](cur()); },
+    checkin, pvtTap, save, close, send, donki, demo
+  };
+  render();
+  if (!S.donki || Date.now() - S.donki.at > 6 * 36e5) donki();
+})();
+</script>
+</body>
+</html>
