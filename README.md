@@ -5,11 +5,11 @@ NASA Space Apps Challenge 2026 — *Create Health Monitoring Software for Astron
 
 > Prototype decision-support tool. All crew health data is **simulated**. Not a medical device.
 
-Live demo: `https://YOUR-USERNAME.github.io/health-copilot/` ← replace with your link
+Live demo: https://abhinav360k-rgb.github.io/Health_Copilot/
 
 ## The problem
 
-On a Mars transit, a question to Earth and its answer can be more than 20 minutes apart. Astronauts have to notice changes in their own health and decide what to do without a doctor in the loop. Fixed thresholds ("heart rate above 100") miss the slow drifts that matter on a long mission, and an alarm without an explanation or a next step is not useful to someone who has to act alone.
+On a Mars transit, a question to Earth and its answer can be more than 20 minutes apart (about 25 minutes by the end of our modelled transit). Astronauts have to notice changes in their own health and decide what to do without a doctor in the loop. Fixed thresholds ("heart rate above 100") miss the slow drifts that matter on a long mission, and an alarm without an explanation or a next step is not useful to someone who has to act alone.
 
 ## The solution
 
@@ -39,7 +39,7 @@ A daily check-in (a reaction-time test plus mood, fatigue and stress ratings) fe
 
 ## Data
 
-**Simulated crew data.** A seeded generator in `index.html` creates a fictional 4-person crew, 30 pre-flight days and a 250-day transit, with day-to-day noise and three injected scenarios:
+**Simulated crew data.** A seeded generator in `index.html` creates a fictional 4-person crew, 30 pre-flight days and a 250-day transit, with day-to-day noise and three injected scenarios. Baseline values and the size of each scenario are illustrative: chosen to be physiologically plausible, not taken from spaceflight datasets.
 
 | Crew member | Scenario | Days |
 |---|---|---|
@@ -50,7 +50,7 @@ A daily check-in (a reaction-time test plus mood, fatigue and stress ratings) fe
 
 **Real NASA data.** The Crew overview reads solar flare (FLR) and solar energetic particle (SEP) events for the last 30 days from **NASA DONKI** (Space Weather Database Of Notifications, Knowledge, Information) through `api.nasa.gov`. We chose DONKI because radiation from solar storms is one of the hazards named in the challenge, the API is open and works from a browser, and a storm warning is something a crew can act on (shelter). The result is cached so it stays visible offline.
 
-**NASA measurements used as parameters.** Cruise radiation dose rate of 1.84 mSv/day from the RAD instrument on Mars Science Laboratory (Zeitlin et al., 2013), and the 600 mSv career limit from NASA-STD-3001.
+**The only numbers taken from published sources** are the cruise radiation dose rate of 1.84 mSv/day from the RAD instrument on Mars Science Laboratory (Zeitlin et al., 2013), the 600 mSv career limit from NASA-STD-3001, and the definition of a reaction-time lapse as a response of 500 ms or slower (Basner & Dinges, 2011). The 30 mSv solar particle event on day 172 is an invented value.
 
 ## Run it
 
@@ -62,13 +62,24 @@ The DONKI panel uses NASA's shared `DEMO_KEY`, which is rate-limited. For reliab
 
 ## Demo
 
-Press **Play demo**. Day 132: Chen is nominal. Her sleep shortens, HRV falls and reaction-time lapses rise. Health Copilot starts watching on day 137, asks for a repeat measurement on day 139 and recommends a sleep and light schedule change on day 140. It sends an Earth report, and by day 143 the trend is recovering.
+Press **Play tour** (pause, next and "Skip to day 140" are on the tour bar). Day 132: Chen is nominal. Her sleep shortens, HRV falls and reaction-time lapses rise. Health Copilot starts watching on day 137, asks for a repeat measurement on day 139 and recommends a sleep and light schedule change on day 140. It sends an Earth report, and by day 143 the trend is recovering.
+
+## Design
+
+- **Drift map:** a heatmap of all 13 indicators by mission day, coloured by deviation from the person's own baseline in the harmful direction. Sustained runs are outlined, and tapping a cell gives the value, the baseline and the reason.
+- **Today:** one hero status with the single next step, a 14-day trail of triage levels, and five body-system rings.
+- **Ridge model:** the same drift data drawn as stacked ridgelines, so a multi-signal drift reads as terrain rising.
+- **Orbital model:** the Earth view computes a Hohmann transfer between circular, coplanar Earth and Mars orbits and draws it to scale; you can drag to rotate it. Signal delay is the Earth-to-spacecraft distance divided by the speed of light. It is a simplified model, not a real mission trajectory.
+- **Look:** flat instrument-panel styling in the spirit of mission-operations software: hairline borders, square corners, dense tables, and colour reserved for status.
+- **Status is never colour alone:** each of the five triage levels has its own icon and label.
+- Desktop rail and mobile bottom tabs; system fonts and inline SVG/canvas only, so it works offline with no external requests. Motion respects the reduced-motion setting.
 
 ## Limitations
 
 - Not a diagnostic device. Thresholds and guidance have not been clinically validated; a flight version would need protocols approved by flight surgeons.
+- Crew baselines and scenario magnitudes are illustrative, not fitted to real astronaut data.
 - The simulated data is simpler than real physiology: no sensor dropouts, no day-to-day correlation, no normal adaptation to microgravity (for example, astronauts on the ISS typically sleep about 6 hours, less than on Earth; Barger et al., 2014).
-- Recovery in the demo is scripted; it assumes the crew member follows the advice.
+- Recovery in the tour is scripted; it assumes the crew member follows the advice.
 - The baseline is fixed at pre-flight values. A real system would re-baseline in flight.
 - The reaction test is a 30-second version of a psychomotor vigilance test and depends on the device's input lag.
 - Bone/muscle forecasting, voice and hand-steadiness tests were out of scope for the hackathon.
