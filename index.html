@@ -3,95 +3,207 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0c0e">
 <title>Health Copilot — astronaut self-monitoring (prototype)</title>
 <!--
-  Health Copilot — NASA Space Apps Challenge 2026 prototype.
-  Single file, no build step, no dependencies. Open index.html in a browser.
-  All crew health data is SIMULATED. Not a medical device.
+  Health Copilot v2 — NASA Space Apps Challenge 2026 prototype.
+  Single file, no build step, no dependencies. Open it in a browser; it works offline.
+  All crew health data is SIMULATED. Decision-support prototype, not a medical device.
   Code written with assistance from an AI tool (Claude, Anthropic); see README.
 -->
 <style>
-:root{--bg:#0a0f18;--panel:#111927;--panel2:#172235;--line:#24334b;--text:#e6edf5;--mut:#8b9bb0;--acc:#5cc8e6;
---l0:#3fbf8f;--l1:#5aa9f0;--l2:#e6c14a;--l3:#f0913a;--l4:#ef5b5b}
+:root{--bg:#0b0c0e;--s1:#121316;--s2:#121316;--s3:#1e2025;--line:#2b2e35;--tx:#e8e9eb;--mut:#9a9fa8;--acc:#e8e9eb;--accink:#0b0c0e;
+--l0:#4cc38a;--l1:#5b9fe0;--l2:#e0c04a;--l3:#ee8a3c;--l4:#e5484d;
+--sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-button{font:inherit;color:inherit;cursor:pointer}
-.layout{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
-aside{background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;gap:18px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:650;letter-spacing:.02em}
-.brand small{display:block;color:var(--mut);font-weight:400;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-.lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin:0 0 6px 4px}
-.navb,.crewb{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:8px 10px;color:var(--text)}
-.navb:hover,.crewb:hover{background:var(--panel2)}
-.navb.on,.crewb.on{background:var(--panel2);border-color:var(--line)}
-.navb.on{box-shadow:inset 3px 0 0 var(--acc)}
-.dot{width:9px;height:9px;border-radius:50%;flex:none}
-.crewb span.r{color:var(--mut);font-size:12px;display:block}
-.sim{border:1px dashed var(--l2);color:var(--l2);border-radius:6px;padding:6px 8px;font-size:11.5px;line-height:1.35}
-main{display:flex;flex-direction:column;min-width:0}
-.top{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
-.clock b{font-size:20px}
-.clock span{color:var(--mut);font-size:12px;display:block}
-.dayctl{display:flex;align-items:center;gap:6px;flex:1;min-width:220px}
-.dayctl input{flex:1;accent-color:var(--acc)}
-.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased;}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:6px}
+.app{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:100vh}
+#rail{position:sticky;top:0;height:100vh;padding:20px 12px;border-right:1px solid var(--line);background:rgba(13,20,34,.85);display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:.01em;padding:0 6px}
+.brand small{display:block;color:var(--mut);font-weight:500;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase}
+.navb{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border-radius:10px;padding:10px 12px;color:var(--mut);font-weight:550}
+.navb:hover{background:var(--s2);color:var(--tx)}
+.navb.on{background:var(--s3);color:var(--tx);box-shadow:inset 3px 0 0 var(--acc)}
+.navb.on svg{color:var(--acc)}
+.simnote{margin-top:auto;border:1px dashed rgba(242,210,92,.55);color:var(--l2);border-radius:10px;padding:10px;font-size:11.5px;line-height:1.4}
+#top{position:sticky;top:0;z-index:8;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:10px 26px;border-bottom:1px solid var(--line);background:rgba(7,11,20,.88);backdrop-filter:blur(10px)}
+.mbrand{display:none}
+.crewp{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:5px 12px 5px 8px;color:var(--mut);font-weight:550;font-size:13.5px}
+.pill.on{background:var(--s3);color:var(--tx);border-color:var(--acc)}
+.pill i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#08101c}
+.tact{margin-left:auto;display:flex;gap:8px;align-items:center}
+.dayctl{display:flex;align-items:center;gap:10px;flex:1 1 100%;min-width:0}
+.dayctl input{flex:1;accent-color:var(--acc);min-width:80px}
+.md b{font-size:19px;font-weight:700;display:block;line-height:1.1;white-space:nowrap}
+.md span{color:var(--mut);font-size:11px;white-space:nowrap}
+.btn{background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-weight:600}
 .btn:hover{border-color:var(--acc)}
-.btn.pri{background:var(--acc);color:#04202a;border-color:var(--acc);font-weight:650}
-.btn.sm{padding:3px 9px}
-#view{padding:22px;max-width:1180px;width:100%}
-h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:0 0 10px;letter-spacing:.02em}
-.sub{color:var(--mut);margin:0 0 16px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.btn.pri{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.btn.ic{padding:5px 9px;line-height:1}
+#view{padding:22px 26px 60px;max-width:1160px;width:100%}
+.simstrip{display:inline-flex;gap:8px;align-items:center;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--l2);border:1px dashed rgba(242,210,92,.5);border-radius:99px;padding:3px 12px;margin-bottom:14px}
+h1{font-size:34px;line-height:1.1;margin:0 0 6px;letter-spacing:-.02em;font-weight:800}
+h2{font-size:13px;margin:0 0 12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:650}
+.sub{color:var(--mut);margin:0 0 18px;max-width:70ch}
+.card{background:linear-gradient(180deg,var(--s2),var(--s1));border:1px solid var(--line);border-radius:16px;padding:18px}
 .grid{display:grid;gap:14px}
-.g4{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-.g2{grid-template-columns:repeat(auto-fill,minmax(420px,1fr))}
-.status{display:grid;grid-template-columns:8px 1fr auto;gap:16px;align-items:center;padding:0;overflow:hidden}
-.status .bar{align-self:stretch}
-.status .body{padding:16px 0}
-.status .act{padding:16px}
-.lvl{font-size:12px;letter-spacing:.12em;font-weight:700}
-.status h1{font-size:24px;margin:2px 0 6px}
-.tile .v{font-size:24px;font-weight:600}
-.tile .u{color:var(--mut);font-size:13px;margin-left:3px}
-.tile .n{color:var(--mut);font-size:12.5px}
-.tile .dv{font-size:12.5px}
-.tag{display:inline-block;border:1px solid currentColor;border-radius:99px;font-size:11px;padding:1px 8px;letter-spacing:.05em}
-ul.clean{margin:0;padding-left:18px}ul.clean li{margin:6px 0}
-ol.steps{margin:0;padding-left:20px}ol.steps li{margin:8px 0}
-table{border-collapse:collapse;width:100%;font-size:13.5px}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--mut);font-weight:500;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
-tr.hit td{background:var(--panel2)}
-pre.rep{background:#060a11;border:1px solid var(--line);border-radius:8px;padding:14px;white-space:pre-wrap;font-size:12.5px;line-height:1.55;margin:0}
-.prog{height:8px;background:var(--panel2);border-radius:9px;overflow:hidden;margin:10px 0}
-.prog i{display:block;height:100%;background:var(--acc);width:0}
-.note{color:var(--mut);font-size:12.5px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.mt{margin-top:14px}
+.hero{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:22px;align-items:center;border:1px solid color-mix(in srgb,var(--lc) 45%,var(--line));border-radius:20px;padding:24px;overflow:hidden;
+background:radial-gradient(600px 240px at 0% 0%,color-mix(in srgb,var(--lc) 16%,transparent),transparent 70%),linear-gradient(180deg,var(--s2),var(--s1))}
+.hglyph{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;color:#08101c;background:var(--lc);box-shadow:0 0 0 8px color-mix(in srgb,var(--lc) 18%,transparent)}
+.hglyph.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 16px color-mix(in srgb,var(--lc) 6%,transparent)}}
+.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:750;color:var(--lc)}
+.eyebrow em{font-style:normal;color:var(--l0);margin-left:8px}
+.hero h1{font-size:32px;margin:4px 0 8px}
+.hwhy{margin:0;color:#d5dceb;max-width:62ch}
+.next{margin-top:14px;padding:12px 14px;border-radius:12px;background:rgba(7,11,20,.55);border:1px solid var(--line);max-width:66ch}
+.next span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);font-weight:700;margin-bottom:2px}
+.hact{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.trail{align-self:end;text-align:right}
+.trail .bars{display:flex;gap:3px;align-items:flex-end;height:34px;justify-content:flex-end}
+.trail .bars i{width:7px;border-radius:2px;display:block}
+.trail span{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut)}
+.sys{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:linear-gradient(180deg,var(--s2),var(--s1));border:1px solid var(--line);border-radius:16px;padding:14px}
+.sys:hover{border-color:var(--sc)}
+.sys b{display:block;font-size:14.5px}
+.sys .st{display:block;font-size:12px;color:var(--sc);font-weight:650}
+.sys .lead{display:block;font-size:12px;color:var(--mut);margin-top:2px}
+.kv{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}
+.kv div span{display:block;color:var(--mut);font-size:12px}
+.kv div b{font-size:24px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.kv div b small{font-size:12px;color:var(--mut);font-weight:500;margin-left:3px}
+.tag{display:inline-block;border:1px solid currentColor;border-radius:99px;font-size:10.5px;padding:1px 9px;letter-spacing:.08em;font-weight:650;vertical-align:middle}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.chip{border:1px solid var(--line);background:none;border-radius:99px;padding:3px 11px;font-size:13px}
-.chip.on{border-color:var(--acc);color:var(--acc)}
-svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
-.modal{position:fixed;inset:0;background:rgba(3,6,12,.82);display:flex;align-items:center;justify-content:center;z-index:20;padding:16px}
+.chip{border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:13px;color:var(--mut);font-weight:550;white-space:nowrap}
+.chip.on{border-color:var(--acc);color:var(--acc);background:rgba(179,164,255,.08)}
+.heatwrap{position:relative}
+#heat{display:block;width:100%;touch-action:pan-y;cursor:crosshair}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:10px;align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.why{list-style:none;margin:0;padding:0}
+.why li{padding:10px 0;border-bottom:1px solid var(--line)}
+.why li:last-child{border:0}
+.why .bar{height:5px;border-radius:9px;background:var(--s3);margin-top:7px;overflow:hidden}
+.why .bar i{display:block;height:100%;border-radius:9px}
+ol.steps{margin:0;padding:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding:0 0 14px 44px;min-height:38px}
+ol.steps li:before{content:counter(s);position:absolute;left:0;top:-2px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:750;background:var(--s3);border:1px solid var(--line);color:var(--acc);font-family:var(--mono)}
+ul.clean{margin:0;padding-left:18px}ul.clean li{margin:7px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:600;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+tr.hit td{background:rgba(179,164,255,.10)}
+tr.hit td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+pre.rep{background:#04070d;border:1px solid var(--line);border-radius:12px;padding:14px;white-space:pre-wrap;font-size:12.5px;line-height:1.6;margin:0;color:#cfd8e8;overflow-wrap:anywhere}
+.prog{height:8px;background:var(--s3);border-radius:9px;overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;background:var(--acc);width:0;border-radius:9px}
+.note{color:var(--mut);font-size:12.5px}
+.ccard{border-left:5px solid var(--lc)}
+.ccard h3{margin:6px 0 0;font-size:18px}
+svg text{fill:var(--mut);font-size:10.5px;font-family:var(--mono)}
+svg text.big{fill:var(--tx);font-size:13px;font-family:var(--sans);font-weight:700}
+.draw{stroke-dasharray:1;stroke-dashoffset:0}
+#view.enter>*{animation:rise .4s ease both}
+#view.enter>*:nth-child(3){animation-delay:.05s}#view.enter>*:nth-child(4){animation-delay:.1s}#view.enter>*:nth-child(5){animation-delay:.15s}#view.enter>*:nth-child(n+6){animation-delay:.2s}
+#view.enter .draw{animation:draw 1s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+@keyframes draw{from{stroke-dashoffset:1}}
+.sig{stroke-dasharray:4 6;animation:flow 1.2s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-20}}
+#tabs{display:none}
+#tip{position:fixed;z-index:30;display:none;max-width:260px;background:#04070d;border:1px solid var(--acc);border-radius:12px;padding:10px 12px;font-size:12.5px;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#tip b{display:block;font-size:13px}
+.modal{position:fixed;inset:0;background:rgba(3,6,12,.86);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
 .modal .card{width:min(560px,100%)}
-.pvt{height:220px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#060a11;font-size:54px;user-select:none;cursor:pointer;margin:12px 0}
-.sl{display:grid;grid-template-columns:110px 1fr 28px;gap:10px;align-items:center;margin:8px 0}
+.modal h3{font-size:22px;margin:0 0 6px}
+.pvt{height:230px;border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;justify-content:center;background:#04070d;font-size:56px;font-weight:700;user-select:none;cursor:pointer;margin:14px 0}
+.sl{display:grid;grid-template-columns:90px 1fr 28px;gap:12px;align-items:center;margin:10px 0}
 .sl input{accent-color:var(--acc)}
-#cap{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#06202b;border:1px solid var(--acc);border-radius:12px;padding:12px 16px;max-width:min(760px,92vw);z-index:15;display:none;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-#cap b{color:var(--acc);font-size:11px;letter-spacing:.1em}
-@media(max-width:820px){.layout{grid-template-columns:1fr}aside{flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}.g2{grid-template-columns:1fr}.status{grid-template-columns:8px 1fr}.status .act{grid-column:2;padding:0 0 16px}}
+#tour{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(780px,calc(100vw - 24px));z-index:25;display:none;background:rgba(10,14,28,.97);border:1px solid var(--acc);border-radius:16px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.6)}
+#tour .tprog{height:3px;background:var(--s3)}#tour .tprog i{display:block;height:100%;background:var(--acc);transition:width .4s}
+#tour .tin{padding:12px 16px}
+#tour .tstep{font-size:11px;letter-spacing:.14em;color:var(--acc);font-weight:750}
+#tour .tcap{font-size:15.5px;margin:2px 0 10px}
+#tour .tbtn{display:flex;gap:6px;flex-wrap:wrap}
+/* ---- flight-display theme: flat panels, hairlines, square corners, colour only for status ---- */
+.card,.hero,.btn,.pill,.chip,.navb,.next,pre.rep,.pvt,#tour,#tip,.simnote,.simstrip,.tag,.prog,.prog i,.why .bar,.why .bar i{border-radius:3px}
+.card{background:var(--s1);padding:16px}
+#rail{background:var(--s1)}#top{background:var(--bg);backdrop-filter:none}
+h1{font-size:22px;font-weight:650;letter-spacing:0;margin-bottom:2px}
+h2{font:600 11px/1.3 var(--mono);letter-spacing:.06em}
+.sub{margin-bottom:14px;font-size:14px}
+.brand{font-weight:650}.brand small{letter-spacing:.06em;font-family:var(--mono)}
+.navb{font-weight:500;padding:8px 12px}.navb.on{box-shadow:inset 2px 0 0 var(--tx)}.navb.on svg{color:var(--tx)}
+.pill.on{border-color:var(--tx)}.pill i{border-radius:2px}
+.chip.on{color:var(--tx);border-color:var(--tx);background:var(--s3)}
+.btn{font-weight:550}.btn.pri:hover{filter:none;background:#fff}
+.simstrip{border-style:solid;border-color:rgba(224,192,74,.4);font-family:var(--mono);letter-spacing:.04em;margin-bottom:12px}
+.simnote{border-style:solid;border-color:rgba(224,192,74,.4)}
+.hero{background:var(--s1);border:1px solid var(--line);border-left:6px solid var(--lc);padding:18px 20px;gap:18px}
+.hero h1{font-size:22px;margin:2px 0 6px}
+.hglyph{width:52px;height:52px;border-radius:3px;box-shadow:none}.hglyph.pulse{animation:none}.hglyph svg{width:28px;height:28px}
+.eyebrow{font:700 12px var(--mono);letter-spacing:.06em}
+.next{background:var(--bg)}.next span{color:var(--mut);font-family:var(--mono);letter-spacing:.06em}
+.trail span{font-family:var(--mono);letter-spacing:.04em}.trail .bars i{border-radius:1px}
+.flush{padding:0}.flush>h2{padding:12px 16px;margin:0}
+.srow{display:grid;grid-template-columns:24px 1.5fr 1.3fr 1fr .9fr 1fr;gap:14px;align-items:center;width:100%;text-align:left;padding:9px 16px;border-top:1px solid var(--line);font-size:14px}
+.srow:hover{background:var(--s3)}
+.srow .sq{width:22px;height:22px;display:grid;place-items:center;color:#0b0c0e;border-radius:2px}
+.srow .r{text-align:right}
+ol.steps li:before{border-radius:3px;color:var(--tx)}
+tr.hit td{background:var(--s3)}tr.hit td:first-child{box-shadow:inset 3px 0 0 var(--tx)}
+.ccard{border-left-width:6px}.ccard h3{font-size:16px}
+#tour{border-color:#6b7079;background:#16171b}#tour .tstep{color:var(--mut);font-family:var(--mono);letter-spacing:.06em}
+#tip{border-color:#6b7079}
+#orb{display:block;width:100%;touch-action:pan-y;cursor:grab}
+#view.enter>*{animation:fade .25s ease both;animation-delay:0s!important}
+@keyframes fade{from{opacity:0}}
+@media (max-width:1000px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+ .app{grid-template-columns:minmax(0,1fr)}#rail{display:none}
+ .mbrand{display:flex;align-items:center;gap:8px;font-weight:750}
+ #top{padding:8px 14px;gap:8px 10px}
+ .pill .fn{display:none}.pill{padding:4px 10px 4px 6px;font-size:13px}
+ .crewp{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto}.dayctl{order:4;gap:6px}
+ .md b{font-size:16px}.md span{display:none}.delay b{font-size:13px}
+ #view{padding:16px 14px 110px}
+ h1{font-size:20px}.hero h1{font-size:19px}
+ .srow{grid-template-columns:24px 1fr auto}.srow .x{display:none}
+ .hero{grid-template-columns:auto minmax(0,1fr);padding:18px;gap:14px;align-items:start}.hglyph{width:54px;height:54px}.hglyph svg{width:26px;height:26px}
+ .trail{grid-column:1/-1;text-align:left}.trail .bars{justify-content:flex-start}
+ .g2,.g4,.g5{grid-template-columns:minmax(0,1fr)}
+ .crewg{grid-template-columns:minmax(0,1fr)}
+ #tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;background:#121316;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+ #tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 2px 8px;font-size:11px;color:var(--mut);font-weight:600;border-top:3px solid transparent}
+ #tabs button.on{color:var(--tx);border-top-color:var(--tx);background:var(--s3)}
+ #tour{bottom:74px}#tour .tcap{font-size:14px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<div class="layout">
-  <aside id="side"></aside>
-  <main>
-    <div class="top" id="top"></div>
-    <div id="view"></div>
-  </main>
+<div class="app">
+  <nav id="rail" aria-label="Views"></nav>
+  <div>
+    <header id="top"></header>
+    <main id="view"></main>
+  </div>
 </div>
-<div id="cap"></div>
+<nav id="tabs" aria-label="Views"></nav>
+<div id="tour" role="status" aria-live="polite"></div>
 <div id="modal"></div>
+<div id="tip" role="tooltip"></div>
 
 <!-- ================= CORE: data generation + detection + triage (no DOM) ================= -->
 <script id="core">
@@ -320,125 +432,266 @@ svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consola
 <script>
 (function () {
   const H = window.HC, $ = id => document.getElementById(id);
-  const COL = ['var(--l0)', 'var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l4)'];
-  const NASA_KEY = 'DEMO_KEY';   // free key from api.nasa.gov raises the rate limit
+  const LV = ['var(--l0)', 'var(--l1)', 'var(--l2)', 'var(--l3)', 'var(--l4)'];
+  const NASA_KEY = 'DEMO_KEY';   // a free key from api.nasa.gov raises the rate limit
   const store = { get(k, f) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : f; } catch (e) { return f; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const ico = (p, sz) => `<svg viewBox="0 0 24 24" width="${sz || 20}" height="${sz || 20}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+  // One icon per triage level, so status never depends on colour alone.
+  const LI = [
+    '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/>',
+    '<path d="M20 11a8 8 0 0 0-14.3-4.4L4 8.5M4 4v4.5h4.5M4 13a8 8 0 0 0 14.3 4.4l1.7-1.9M20 20v-4.5h-4.5"/>',
+    '<path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12z"/>',
+    '<path d="M12 6v12M6 12h12"/><rect x="2.5" y="2.5" width="19" height="19" rx="5"/>'
+  ];
+  const NI = {
+    today: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    trends: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+    alert: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+    report: '<circle cx="6" cy="18" r="2"/><path d="M6 11a7 7 0 0 1 7 7M6 5a13 13 0 0 1 13 13"/>',
+    crew: '<circle cx="8" cy="9" r="3"/><circle cx="17" cy="10" r="2.4"/><path d="M2.5 19a5.5 5.5 0 0 1 11 0M15 19a4 4 0 0 1 6.5-2.6"/>',
+    method: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.4v.4"/>'
+  };
+  const NAV = [['today', 'Today'], ['trends', 'Drift map'], ['alert', 'Alert'], ['report', 'Earth'], ['crew', 'Crew'], ['method', 'How it works']];
+  const SYS = [
+    ['cardio', 'Heart & circulation', ['hrv', 'rhr', 'spo2']],
+    ['sleep', 'Sleep', ['sleepH', 'sleepEff']],
+    ['vigilance', 'Alertness', ['rt', 'lapses']],
+    ['behavioral', 'Mood & stress', ['mood', 'fatigue', 'stress']],
+    ['physical', 'Body & exercise', ['activity', 'temp', 'mass']]
+  ];
+  const SHORT = { hrv: 'HRV', rhr: 'Resting HR', spo2: 'SpO₂', sleepH: 'Sleep hours', sleepEff: 'Sleep efficiency', rt: 'Reaction time', lapses: 'Lapses', mood: 'Mood', fatigue: 'Fatigue', stress: 'Stress', activity: 'Exercise', temp: 'Skin temp', mass: 'Body mass' };
 
   let overrides = store.get('hc_checkins', {});
   let crew = H.build(overrides);
-  const S = { day: 140, who: 'chen', view: 'today', range: 60, sent: {}, donki: store.get('hc_donki', null), demo: false };
+  const S = { day: 140, who: 'chen', view: 'today', hwin: 60, hmode: 'map', yaw: 2.5, pitch: 0.95, pk: null, metric: 'hrv', sent: {}, donki: store.get('hc_donki', null), dkErr: '' };
+  const T = { on: false, paused: false, skip: false, stop: false, jump: -1, i: 0, n: 7, text: '' };
   const cur = () => crew.find(c => c.id === S.who);
   const mmss = s => Math.floor(s / 60) + ' min ' + String(s % 60).padStart(2, '0') + ' s';
   const val = (c, k, d) => c.data[k][H.idx(d)];
+  const fx = (k, v) => v.toFixed(H.METRICS[k].dec), un = k => { const u = H.METRICS[k].unit; return !u ? '' : u === '%' || u === '/10' ? u : ' ' + u; };
+  // ---------- orbital model: Hohmann transfer, circular coplanar orbits (simplified) ----------
+  const KG = 0.01720209895, AT = 1.262, ET = 0.2076, NT = KG / Math.pow(AT, 1.5), TOF = Math.PI / NT, NM = KG / Math.pow(1.524, 1.5);
+  function craft(d) { const M = NT * d; let E = M; for (let i = 0; i < 8; i++) E -= (E - ET * Math.sin(E) - M) / (1 - ET * Math.cos(E));
+    const r = AT * (1 - ET * Math.cos(E)), v = 2 * Math.atan2(Math.sqrt(1 + ET) * Math.sin(E / 2), Math.sqrt(1 - ET) * Math.cos(E / 2)); return [r * Math.cos(v), r * Math.sin(v)]; }
+  const earth = d => [Math.cos(KG * d), Math.sin(KG * d)];
+  const mars = d => { const a = Math.PI - NM * (TOF - d); return [1.524 * Math.cos(a), 1.524 * Math.sin(a)]; };
+  const distAU = d => { const c = craft(d), e = earth(d); return Math.hypot(c[0] - e[0], c[1] - e[1]); };
+  const LS = d => Math.round(499.005 * distAU(d));   // one-way light time in seconds
+  const logo = '<svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="5" fill="var(--acc)"/><ellipse cx="15" cy="15" rx="13" ry="6" fill="none" stroke="var(--acc)" stroke-width="1.5" transform="rotate(-28 15 15)"/><circle cx="25.5" cy="8.6" r="1.8" fill="var(--tx)"/></svg>';
 
-  const NAV = [['today', 'Today'], ['trends', 'Trends'], ['alert', 'Alert detail'], ['report', 'Earth report'], ['crew', 'Crew overview'], ['method', 'How it works']];
-
-  function renderSide() {
-    $('side').innerHTML = `
-      <div class="brand"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="5" fill="var(--acc)"/><ellipse cx="15" cy="15" rx="13" ry="6" fill="none" stroke="var(--acc)" stroke-width="1.4" transform="rotate(-28 15 15)"/></svg>
-        <div>Health Copilot<small>Crew self-monitoring</small></div></div>
-      <div><p class="lab">Crew member</p>${crew.map(c => `<button class="crewb ${c.id === S.who ? 'on' : ''}" onclick="UI.who('${c.id}')"><i class="dot" style="background:${COL[c.level[S.day]]}"></i><span>${c.name}<span class="r">${c.role}</span></span></button>`).join('')}</div>
-      <div><p class="lab">Views</p>${NAV.map(n => `<button class="navb ${S.view === n[0] ? 'on' : ''}" onclick="UI.go('${n[0]}')">${n[1]}</button>`).join('')}</div>
-      <div class="sim"><b>SIMULATED DATA.</b> All crew and health values are generated, not real. Prototype decision-support tool, not a medical device.</div>`;
+  // ---------- chrome ----------
+  function renderRail() {
+    $('rail').innerHTML = `<div class="brand">${logo}<div>Health Copilot<small>Crew self-monitoring</small></div></div>
+      <div>${NAV.map(n => `<button class="navb ${S.view === n[0] ? 'on' : ''}" ${S.view === n[0] ? 'aria-current="page"' : ''} onclick="UI.go('${n[0]}')">${ico(NI[n[0]])}${n[1]}</button>`).join('')}</div>
+      <div class="simnote"><b>SIMULATED DATA.</b> The crew and every health value are generated, not real. Prototype decision support, not a medical device.</div>`;
+    $('tabs').innerHTML = NAV.slice(0, 5).map(n => `<button class="${S.view === n[0] ? 'on' : ''}" ${S.view === n[0] ? 'aria-current="page"' : ''} onclick="UI.go('${n[0]}')">${ico(NI[n[0]], 22)}${n[1]}</button>`).join('');
   }
-
+  const pills = () => crew.map(c => { const l = c.level[S.day], nm = c.name.split(' ');
+    return `<button class="pill ${c.id === S.who ? 'on' : ''}" aria-pressed="${c.id === S.who}" aria-label="${c.name}, ${H.LEVELS[l].name.toLowerCase()}" onclick="UI.who('${c.id}')"><i style="background:${LV[l]}">${ico(LI[l], 13)}</i><span><span class="fn">${nm[0]} </span>${nm[1]}</span></button>`; }).join('');
   function renderTop() {
-    const ls = H.lightSec(S.day);
-    $('top').innerHTML = `
-      <div class="clock"><b class="mono" id="mdl">MISSION DAY ${S.day}</b><span>of ${H.DAYS} · Earth–Mars transit (simulated)</span></div>
-      <div class="dayctl"><button class="btn sm" onclick="UI.day(${S.day - 1})" aria-label="Previous day">◀</button>
+    $('top').innerHTML = `<div class="mbrand">${logo}</div>
+      <div class="crewp" id="crewp" role="group" aria-label="Crew member">${pills()}</div>
+      <div class="tact"><button class="chip" onclick="UI.story()">Jump to day 140</button><button class="btn pri" onclick="UI.tour()">${T.on ? 'End tour' : '▶ Play tour'}</button></div>
+      <div class="dayctl">
+        <div class="md"><b class="mono" id="mdl">MD ${S.day}</b><span>mission day of ${H.DAYS}</span></div>
+        <button class="btn ic" onclick="UI.day(${S.day - 1})" aria-label="Previous day">◀</button>
         <input type="range" min="1" max="${H.DAYS}" value="${S.day}" oninput="UI.slide(+this.value)" aria-label="Mission day">
-        <button class="btn sm" onclick="UI.day(${S.day + 1})" aria-label="Next day">▶</button></div>
-      <div class="clock"><b class="mono" id="lsl">${mmss(ls)}</b><span>one-way signal delay to Earth</span></div>
-      <button class="btn pri" onclick="UI.demo()">${S.demo ? '■ Stop demo' : '▶ Play demo'}</button>`;
+        <button class="btn ic" onclick="UI.day(${S.day + 1})" aria-label="Next day">▶</button>
+        <div class="md delay"><b class="mono" id="lsl">${mmss(LS(S.day))}</b><span>signal delay to Earth, one way</span></div>
+      </div>`;
   }
 
-  // ---------- charts ----------
+  // ---------- shared pieces ----------
+  function trail(c, d) {
+    let h = ''; const d0 = Math.max(1, d - 13);
+    for (let x = d0; x <= d; x++) { const l = c.level[x]; h += `<i style="height:${7 + l * 6.5}px;background:${LV[l]};opacity:${x === d ? 1 : .75}" title="MD ${x}: ${H.LEVELS[l].name}"></i>`; }
+    return `<div class="trail" role="img" aria-label="Triage level for the last ${d - d0 + 1} days; today ${H.LEVELS[c.level[d]].name}"><div class="bars">${h}</div><span>Last 14 days</span></div>`;
+  }
+  function hero(c, a, full) {
+    const title = a.recovering ? (a.level < 3 ? 'Your indicators are moving back toward baseline' : 'The trend is recovering. Keep the plan going.') : a.head;
+    return `<section class="hero" style="--lc:${LV[a.level]}">
+      <div class="hglyph ${a.level >= 3 ? 'pulse' : ''}">${ico(LI[a.level], 36)}</div>
+      <div><div class="eyebrow">${a.name}${a.recovering ? '<em>↘ TREND RECOVERING</em>' : ''}</div>
+        <h1>${title}</h1>
+        <p class="hwhy">${a.patternName ? '<b>' + a.patternName + '.</b> ' : ''}${a.why[0] || 'No indicator is outside your personal limits.'}${a.why.length > 1 ? ` <span class="note">+${a.why.length - 1} more</span>` : ''}</p>
+        ${full ? `<div class="next"><span>Next step</span>${a.steps[0]}</div>
+        <div class="hact"><button class="btn ${a.level >= 2 ? 'pri' : ''}" onclick="UI.go('alert')">Why, and what do I do?</button><button class="btn" onclick="UI.go('trends')">See the drift map</button></div>` : ''}</div>
+      ${trail(c, S.day)}</section>`;
+  }
   function chart(c, k, d, range, W, Ht) {
-    const m = H.METRICS[k], b = c.bl[k], d0 = Math.max(1, d - range + 1), L = 38, R = 8, T = 8, B = 18;
+    const m = H.METRICS[k], b = c.bl[k], d0 = Math.max(1, d - range + 1), L = 44, R = 10, Tp = 10, B = 20;
     let lo = b.mean - 2.6 * b.sd, hi = b.mean + 2.6 * b.sd;
     for (let x = d0; x <= d; x++) { const v = val(c, k, x); lo = Math.min(lo, v); hi = Math.max(hi, v); }
     const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
-    const X = x => L + (x - d0) / Math.max(1, d - d0) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (Ht - T - B);
+    const X = x => L + (x - d0) / Math.max(1, d - d0) * (W - L - R), Y = v => Tp + (1 - (v - lo) / (hi - lo)) * (Ht - Tp - B);
     let path = '', pts = '';
     for (let x = d0; x <= d; x++) {
       const v = val(c, k, x); path += (x === d0 ? 'M' : 'L') + X(x).toFixed(1) + ' ' + Y(v).toFixed(1);
-      const n = c.an[k].run[x]; if (n) pts += `<circle cx="${X(x).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${n >= 3 ? 3 : 2.2}" fill="${n >= 3 ? 'var(--l3)' : 'var(--l1)'}"/>`;
+      const n = c.an[k].run[x]; if (n) pts += n >= 3 ? `<rect x="${(X(x) - 3).toFixed(1)}" y="${(Y(v) - 3).toFixed(1)}" width="6" height="6" transform="rotate(45 ${X(x).toFixed(1)} ${Y(v).toFixed(1)})" fill="#ee8a3c"/>` : `<circle cx="${X(x).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.4" fill="#5b9fe0"/>`;
     }
-    const yb1 = Y(b.mean + 2 * b.sd), yb2 = Y(b.mean - 2 * b.sd);
-    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="${m.label} over the last ${d - d0 + 1} days with personal baseline band">
-      <rect x="${L}" y="${yb1}" width="${W - L - R}" height="${yb2 - yb1}" fill="#5cc8e6" opacity=".10"/>
-      <line x1="${L}" x2="${W - R}" y1="${Y(b.mean)}" y2="${Y(b.mean)}" stroke="#5cc8e6" stroke-dasharray="3 4" opacity=".6"/>
-      <path d="${path}" fill="none" stroke="#c9d6e6" stroke-width="1.4"/>${pts}
-      <text x="${L - 5}" y="${yb1 + 3}" text-anchor="end">${(b.mean + 2 * b.sd).toFixed(m.dec || 1)}</text>
-      <text x="${L - 5}" y="${Y(b.mean) + 3}" text-anchor="end">${b.mean.toFixed(m.dec || 1)}</text>
-      <text x="${L - 5}" y="${yb2 + 3}" text-anchor="end">${(b.mean - 2 * b.sd).toFixed(m.dec || 1)}</text>
+    const y1 = Y(b.mean + 2 * b.sd), y2 = Y(b.mean - 2 * b.sd), f = v => v.toFixed(m.dec || 1);
+    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="${m.label}, last ${d - d0 + 1} days, against the personal baseline band">
+      <rect x="${L}" y="${y1}" width="${W - L - R}" height="${y2 - y1}" fill="#e8e9eb" opacity=".10" rx="3"/>
+      <line x1="${L}" x2="${W - R}" y1="${Y(b.mean)}" y2="${Y(b.mean)}" stroke="#e8e9eb" stroke-dasharray="3 5" opacity=".7"/>
+      <path class="draw" pathLength="1" d="${path}" fill="none" stroke="#d8dbe0" stroke-width="1.6" stroke-linejoin="round"/>${pts}
+      <text x="${L - 6}" y="${y1 + 3}" text-anchor="end">${f(b.mean + 2 * b.sd)}</text><text x="${L - 6}" y="${Y(b.mean) + 3}" text-anchor="end">${f(b.mean)}</text><text x="${L - 6}" y="${y2 + 3}" text-anchor="end">${f(b.mean - 2 * b.sd)}</text>
       <text x="${L}" y="${Ht - 4}">MD ${d0}</text><text x="${W - R}" y="${Ht - 4}" text-anchor="end">MD ${d}</text></svg>`;
   }
-  function spark(c, k, d) {
-    const d0 = Math.max(1, d - 13), vs = []; for (let x = d0; x <= d; x++) vs.push(val(c, k, x));
-    const lo = Math.min(...vs), hi = Math.max(...vs), W = 180, Ht = 30;
-    const p = vs.map((v, i) => (i ? 'L' : 'M') + (i / Math.max(1, vs.length - 1) * W).toFixed(1) + ' ' + (3 + (1 - (v - lo) / (hi - lo || 1)) * (Ht - 6)).toFixed(1)).join('');
-    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" height="30" aria-hidden="true"><path d="${p}" fill="none" stroke="#8b9bb0" stroke-width="1.3"/></svg>`;
+
+  // ---------- drift heatmap (canvas) ----------
+  const mix = (a, b, t) => 'rgb(' + a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',') + ')';
+  const C0 = [30, 32, 37], CC = [44, 66, 82], C1 = [88, 72, 40], C2 = [238, 138, 60], C3 = [229, 72, 77];
+  function heatColor(s) {
+    if (s <= 0) return mix(C0, CC, Math.min(1, -s / 2.5));
+    if (s < H.H1) return mix(C0, C1, Math.pow(s / H.H1, 2.4) * .75);
+    if (s < H.H2) return mix(C1, C2, (s - H.H1) / (H.H2 - H.H1));
+    return mix(C2, C3, Math.min(1, (s - H.H2) / 1.5));
+  }
+  function drawHeat() {
+    const cv = $('heat'); if (!cv) return;
+    if (S.hmode === 'ridge') return drawRidge(cv, cur());
+    const c = cur(), W = cv.parentElement.clientWidth, mob = W < 560, GUT = mob ? 108 : 132, rh = mob ? 19 : 22, gap = 17, TOP = 30, BOT = 20;
+    const Ht = TOP + 13 * rh + 4 * gap + BOT, dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(Ht * dpr); cv.style.height = Ht + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Ht);
+    const d1 = S.hwin === 250 ? H.DAYS : S.day, d0 = S.hwin === 250 ? 1 : Math.max(1, S.day - S.hwin + 1), n = d1 - d0 + 1, cw = (W - GUT - 4) / n;
+    const rows = []; let y = TOP;
+    SYS.forEach((s, si) => { if (si) y += gap; s[2].forEach((k, ki) => { rows.push({ k, y, sys: ki === 0 ? s[1] : '' }); y += rh; }); });
+    g.textBaseline = 'middle';
+    for (const r of rows) {
+      if (r.sys) { g.font = '650 9.5px system-ui,sans-serif'; g.fillStyle = '#8a8f98'; g.textAlign = 'left'; g.fillText(r.sys.toUpperCase(), 0, r.y - 8); }
+      g.font = (r.k === S.metric ? '700 ' : '500 ') + (mob ? '11.5px' : '12.5px') + ' system-ui,sans-serif'; g.fillStyle = r.k === S.metric ? '#e8e9eb' : '#c9ccd1'; g.textAlign = 'right';
+      g.fillText(SHORT[r.k], GUT - 10, r.y + rh / 2 - 1);
+      const an = c.an[r.k]; let st = 0;
+      for (let d = d0; d <= d1; d++) {
+        const x = GUT + (d - d0) * cw;
+        g.fillStyle = d > S.day ? '#0e0f11' : heatColor(an.s[d]);
+        g.fillRect(x, r.y, Math.max(1, cw - (cw > 4 ? 1 : 0)), rh - 2);
+        const live = d <= S.day && an.run[d] > 0;
+        if (live && !st) st = d;
+        if (st && (!live || d === d1 || d === S.day)) { const e = live ? d : d - 1;
+          if (an.run[e] >= 3) { g.strokeStyle = '#ffffff'; g.lineWidth = 1.25; g.strokeRect(GUT + (st - d0) * cw - .5, r.y - .5, (e - st + 1) * cw, rh - 1); }
+          st = 0; }
+      }
+    }
+    g.font = '10.5px ui-monospace,Menlo,Consolas,monospace'; g.fillStyle = '#8a8f98'; g.textAlign = 'center';
+    const step = n <= 30 ? 5 : n <= 60 ? 10 : n <= 120 ? 20 : 50;
+    for (let d = d0; d <= d1; d++) if (d % step === 0) g.fillText(d, GUT + (d - d0 + .5) * cw, Ht - 8);
+    const px = GUT + (S.day - d0 + .5) * cw; g.strokeStyle = '#e8e9eb'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(px, TOP - 9); g.lineTo(px, y + 2); g.stroke();
+    g.fillStyle = '#e8e9eb'; g.font = '700 10.5px ui-monospace,Menlo,Consolas,monospace'; g.textAlign = px > W - 40 ? 'right' : 'center'; g.fillText('MD ' + S.day, px > W - 40 ? W - 2 : px, 6);
+    const hit = ev => { const b = cv.getBoundingClientRect(), mx = ev.clientX - b.left, my = ev.clientY - b.top, r = rows.find(q => my >= q.y && my < q.y + rh), d = d0 + Math.floor((mx - GUT) / cw);
+      return r && (mx < GUT || (d >= d0 && d <= Math.min(d1, S.day))) ? { k: r.k, d: mx < GUT ? S.day : d } : null; };
+    cv.onpointermove = ev => { const h = hit(ev); h ? tip(ev, c, h.k, h.d) : hideTip(); };
+    cv.onpointerleave = hideTip;
+    cv.onclick = ev => { const h = hit(ev); if (!h) return; S.metric = h.k; $('detail').innerHTML = detail(c); drawHeat(); tip(ev, c, h.k, h.d); };
+  }
+  // Ridge model: the same deviations as stacked ridgelines, back to front. Height = drift in the harmful direction.
+  function drawRidge(cv, c) {
+    const W = cv.parentElement.clientWidth, mob = W < 560, GUT = mob ? 108 : 132, stp = mob ? 21 : 25, skew = mob ? 2.5 : 7, TOP = 96, Ht = TOP + 12 * stp + 34, dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(Ht * dpr); cv.style.height = Ht + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Ht);
+    const d1 = S.hwin === 250 ? H.DAYS : S.day, d0 = S.hwin === 250 ? 1 : Math.max(1, S.day - S.hwin + 1), n = d1 - d0 + 1, cw = (W - GUT - 6 - 12 * skew) / n, amp = stp * 3.6 / 3.5, last = Math.min(d1, S.day);
+    const keys = [].concat(...SYS.map(q => q[2])); g.textBaseline = 'middle'; g.lineJoin = 'round';
+    keys.forEach((k, i) => {
+      const an = c.an[k], yb = TOP + i * stp, x0 = GUT + (12 - i) * skew, X = d => x0 + (d - d0 + .5) * cw, Y = d => yb - Math.min(3.5, Math.max(0, an.s[d])) * amp;
+      g.beginPath(); g.moveTo(X(d0), yb); for (let d = d0; d <= last; d++) g.lineTo(X(d), Y(d)); g.lineTo(X(last), yb); g.closePath(); g.fillStyle = '#121316'; g.fill();
+      g.beginPath(); g.moveTo(x0, yb); g.lineTo(x0 + n * cw, yb); g.strokeStyle = '#2b2e35'; g.lineWidth = 1; g.stroke();
+      for (let d = d0 + 1; d <= last; d++) { const sv = Math.max(an.s[d], an.s[d - 1]); if (sv > H.H1) { g.beginPath(); g.moveTo(X(d - 1), yb); g.lineTo(X(d - 1), Y(d - 1)); g.lineTo(X(d), Y(d)); g.lineTo(X(d), yb); g.closePath(); g.globalAlpha = .38; g.fillStyle = heatColor(sv); g.fill(); g.globalAlpha = 1; } g.beginPath(); g.moveTo(X(d - 1), Y(d - 1)); g.lineTo(X(d), Y(d)); g.strokeStyle = sv > H.H1 ? heatColor(sv) : '#5d626b'; g.lineWidth = sv > H.H1 ? 2 : 1.2; g.stroke(); }
+      g.font = (k === S.metric ? '700 ' : '500 ') + (mob ? '11.5px' : '12.5px') + ' system-ui,sans-serif'; g.fillStyle = k === S.metric ? '#ffffff' : '#c9ccd1'; g.textAlign = 'right'; g.fillText(SHORT[k], x0 - 10, yb - 3);
+    });
+    g.font = '10.5px ui-monospace,Menlo,Consolas,monospace'; g.fillStyle = '#8a8f98'; g.textAlign = 'center';
+    const step = n <= 30 ? 5 : n <= 60 ? 10 : n <= 120 ? 20 : 50;
+    for (let d = d0; d <= d1; d++) if (d % step === 0) g.fillText(d, GUT + (d - d0 + .5) * cw, Ht - 10);
+    cv.onpointermove = cv.onpointerleave = null; hideTip();
+    cv.onclick = ev => { const b = cv.getBoundingClientRect(), i = Math.round((ev.clientY - b.top - TOP + stp * .4) / stp); if (keys[i]) { S.metric = keys[i]; $('detail').innerHTML = detail(c); drawHeat(); } };
+  }
+  function tip(ev, c, k, d) {
+    const m = H.METRICS[k], f = c.raw[d].flags.find(q => q.key === k), el = $('tip');
+    el.innerHTML = `<b>MD ${d} · ${m.label}</b><span class="mono">${fx(k, val(c, k, d))}${un(k)}</span> <span class="note">baseline ${c.bl[k].mean.toFixed(m.dec || 1)}</span><div style="margin-top:4px;color:${f ? (f.persistent ? 'var(--l3)' : 'var(--l1)') : 'var(--l0)'}">${f ? f.text + (f.persistent ? '' : ' Too early to call a trend.') : 'Within your normal range.'}</div>`;
+    el.style.display = 'block';
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.max(8, Math.min(ev.clientX + 14, innerWidth - w - 8)) + 'px';
+    el.style.top = (ev.clientY + 18 + h > innerHeight ? ev.clientY - h - 12 : ev.clientY + 18) + 'px';
+  }
+  function hideTip() { $('tip').style.display = 'none'; }
+  function detail(c) {
+    const k = S.metric, m = H.METRICS[k], f = c.raw[S.day].flags.find(q => q.key === k), n = c.an[k].run[S.day];
+    return `<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap"><h2 style="margin:0">${m.label}${m.unit ? ' · ' + m.unit : ''}</h2>${n ? `<span class="tag" style="color:${n >= 3 ? 'var(--l3)' : 'var(--l1)'}">${n >= 3 ? 'OUTSIDE YOUR LIMITS' : 'EARLY CHANGE'} · ${n} D</span>` : '<span class="tag" style="color:var(--l0)">WITHIN BASELINE</span>'}</div>
+      ${innerWidth < 700 ? chart(c, k, S.day, Math.min(S.hwin, 60), 520, 230) : chart(c, k, S.day, Math.min(S.hwin, 120), 1080, 210)}
+      <p style="margin:6px 0 0">${f ? f.text : m.label + ' is within your normal range today.'}</p>
+      <p class="note" style="margin:6px 0 0">Shaded band: your normal range (pre-flight mean ± 2 SD). Dashed line: your baseline. Blue dots: early change. Orange diamonds: beyond your limit for 3 or more days.</p>`;
   }
 
   // ---------- views ----------
-  function statusCard(c, a, withBtn) {
-    return `<div class="card status"><div class="bar" style="background:${COL[a.level]}"></div>
-      <div class="body"><div class="lvl" style="color:${COL[a.level]}">${a.name}${a.recovering ? ' · TREND RECOVERING' : ''}</div>
-        <h1>${a.recovering && a.level < 3 ? 'Your indicators are moving back toward baseline' : a.head}</h1>
-        <div>${a.patternName ? '<b>' + a.patternName + '.</b> ' : ''}${a.why[0] || 'No indicator is outside your personal limits.'}${a.why.length > 1 ? ` <span class="note">+${a.why.length - 1} more</span>` : ''}</div></div>
-      ${withBtn ? `<div class="act"><button class="btn ${a.level >= 2 ? 'pri' : ''}" onclick="UI.go('alert')">Why, and what do I do?</button></div>` : ''}</div>`;
-  }
-
+  const strip = '<div class="simstrip">Simulated data · fictional crew · prototype, not a medical device</div>';
   const V = {};
   V.today = c => {
-    const a = H.assess(c, S.day), ov = ((overrides[c.id] || {})[S.day]);
-    const tiles = ['hrv', 'rhr', 'sleepH', 'sleepEff', 'rt', 'lapses', 'spo2', 'activity'].map(k => {
-      const m = H.METRICS[k], b = c.bl[k], v = val(c, k, S.day), n = c.an[k].run[S.day];
-      const col = n >= 3 ? 'var(--l3)' : n ? 'var(--l1)' : 'var(--mut)';
-      return `<div class="card tile"><div class="n">${m.label}</div><div><span class="v mono">${H.fmt(k, v)}</span><span class="u">${m.unit}</span></div>
-        <div class="dv" style="color:${col}">${n ? (n >= 3 ? 'Outside your limits · ' : 'Early change · ') + n + ' d' : 'Within your baseline'} <span class="note">(baseline ${b.mean.toFixed(m.dec || 1)})</span></div>${spark(c, k, S.day)}</div>`;
+    const a = H.assess(c, S.day), ov = (overrides[c.id] || {})[S.day];
+    const sys = SYS.map(s => {
+      let st = 0, lead = s[2][0], ms = -9;
+      s[2].forEach(k => { const n = c.an[k].run[S.day], sv = c.an[k].s[S.day]; st = Math.max(st, n >= 3 ? 2 : n ? 1 : 0); if (n && sv > ms) { ms = sv; lead = k; } });
+      const col = ['var(--l0)', 'var(--l1)', 'var(--l3)'][st], m = H.METRICS[lead];
+      return `<button class="srow" onclick="UI.metric('${lead}')" aria-label="${s[1]}: ${['within baseline', 'early change', 'outside your limits'][st]}. Open drift map.">
+        <i class="sq" style="background:${col}">${ico(LI[st === 2 ? 3 : st], 14)}</i><b>${s[1]}</b><span style="color:${col}">${['Within baseline', 'Early change', 'Outside your limits'][st]}</span>
+        <span class="x">${SHORT[lead]}</span><span class="mono r">${fx(lead, val(c, lead, S.day))}${un(lead)}</span><span class="x note r">baseline ${c.bl[lead].mean.toFixed(m.dec || 1)}</span></button>`;
     }).join('');
-    return `<h1>Today · ${c.name}</h1><p class="sub">Your status at a glance, compared with your own pre-flight baseline.</p>
-      ${statusCard(c, a, true)}
-      <div class="grid g4" style="margin:14px 0">${tiles}</div>
-      <div class="card"><h2>Daily check-in</h2>
-        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
-          <div>Reaction time <b class="mono">${H.fmt('rt', val(c, 'rt', S.day))} ms</b> · lapses <b class="mono">${val(c, 'lapses', S.day)}</b></div>
-          <div>Mood <b class="mono">${val(c, 'mood', S.day)}</b> · fatigue <b class="mono">${val(c, 'fatigue', S.day)}</b> · stress <b class="mono">${val(c, 'stress', S.day)}</b> <span class="note">/10</span></div>
-          <span class="tag" style="color:${ov ? 'var(--l0)' : 'var(--mut)'}">${ov ? 'ENTERED BY YOU' : 'SIMULATED ENTRY'}</span>
-          <button class="btn" onclick="UI.checkin()" style="margin-left:auto">${ov ? 'Redo check-in' : 'Do the check-in yourself'}</button></div>
-        <p class="note" style="margin:10px 0 0">A short reaction-time test plus three self-ratings. Results feed the same baseline system as the sensors.</p></div>`;
+    return `${strip}<h1>Today, ${c.name.split(' ')[0]}</h1><p class="sub">Your status compared with your own pre-flight baseline, not a population average.</p>
+      ${hero(c, a, true)}
+      <div class="card flush mt"><h2>Body systems · most-changed indicator in each</h2>${sys}</div>
+      <div class="card mt"><h2>Daily check-in</h2>
+        <div class="kv"><div><span>Reaction time</span><b>${fx('rt', val(c, 'rt', S.day))}<small>ms</small></b></div><div><span>Lapses</span><b>${val(c, 'lapses', S.day)}</b></div>
+          <div><span>Mood</span><b>${val(c, 'mood', S.day)}<small>/10</small></b></div><div><span>Fatigue</span><b>${val(c, 'fatigue', S.day)}<small>/10</small></b></div><div><span>Stress</span><b>${val(c, 'stress', S.day)}<small>/10</small></b></div>
+          <div style="margin-left:auto;text-align:right"><span class="tag" style="display:inline-block;color:${ov ? 'var(--l0)' : 'var(--mut)'};margin-bottom:8px">${ov ? 'ENTERED BY YOU' : 'SIMULATED ENTRY'}</span><br><button class="btn" onclick="UI.checkin()">${ov ? 'Redo check-in' : 'Do the check-in yourself'}</button></div></div>
+        <p class="note" style="margin:12px 0 0">A 30-second reaction test and three self-ratings. They feed the same baseline system as the sensors.</p></div>`;
   };
-
-  V.trends = c => {
-    const charts = H.KEYS.map(k => { const m = H.METRICS[k], n = c.an[k].run[S.day];
-      return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">${m.label} <span class="note">${m.unit}</span></h2>${n ? `<span class="tag" style="color:${n >= 3 ? 'var(--l3)' : 'var(--l1)'}">${n >= 3 ? 'OUTSIDE LIMITS' : 'EARLY CHANGE'} · ${n} d</span>` : ''}</div>${chart(c, k, S.day, S.range, 520, 150)}</div>`; }).join('');
-    return `<h1>Trends · ${c.name}</h1><p class="sub">Shaded band = your normal range (pre-flight mean ± 2 SD). Dashed line = your baseline. Blue dots = early change; orange dots = outside your limits for 3+ days.</p>
-      <div class="chips">${[30, 60, 120, 250].map(r => `<button class="chip ${S.range === r ? 'on' : ''}" onclick="UI.range(${r})">${r === 250 ? 'Whole mission' : 'Last ' + r + ' days'}</button>`).join('')}</div>
-      <div class="grid g2">${charts}</div>`;
-  };
-
+  V.trends = c => `${strip}<h1>Drift map</h1><p class="sub">${c.name}’s 13 indicators, one row each. Dark means normal for this person. Warm colours mean drifting in the harmful direction. Tap a cell to read why, or switch to the ridge model to see the drift as terrain.</p>
+      <div class="chips" role="group" aria-label="Time window">${[30, 60, 120, 250].map(r => `<button class="chip ${S.hwin === r ? 'on' : ''}" aria-pressed="${S.hwin === r}" onclick="UI.hwin(${r})">${r === 250 ? 'Whole mission' : 'Last ' + r + ' days'}</button>`).join('')}<span style="width:10px"></span>${[['map', 'Map'], ['ridge', 'Ridge model']].map(q => `<button class="chip ${S.hmode === q[0] ? 'on' : ''}" aria-pressed="${S.hmode === q[0]}" onclick="UI.hmode('${q[0]}')">${q[1]}</button>`).join('')}</div>
+      <div class="card"><div class="heatwrap"><canvas id="heat" role="img" aria-label="Heatmap of deviation from personal baseline for 13 indicators by mission day. ${c.raw[S.day].flags.length ? c.raw[S.day].flags.map(f => f.text).join(' ') : 'No indicator is outside personal limits today.'}"></canvas></div>
+${S.hmode === 'ridge' ? `<div class="legend"><span>Each line is one indicator. Height shows drift in the harmful direction; coloured sections are beyond the personal limit. Click a line to chart it.</span></div>` : `<div class="legend"><span><i style="background:${heatColor(-2)}"></i>Better than baseline</span><span><i style="background:${heatColor(0)}"></i>Normal</span><span><i style="background:${heatColor(1.5)}"></i>Beyond personal limit</span><span><i style="background:${heatColor(3.4)}"></i>Strong</span><span><i style="background:none;border:1.5px solid #fff"></i>Sustained 3+ days</span>`}</div></div>
+      <div class="card mt" id="detail">${detail(c)}</div>`;
   V.alert = c => {
     const a = H.assess(c, S.day);
-    return `<h1>Alert detail · ${c.name}</h1><p class="sub">Every status comes with the reason and a next step. You decide what to act on.</p>
-      ${statusCard(c, a, false)}
-      <div class="grid g2" style="margin-top:14px">
-        <div class="card"><h2>Why am I seeing this?</h2>${a.why.length ? `<ul class="clean">${a.why.map(w => `<li>${w}</li>`).join('')}</ul>` : '<p class="note">No indicator is outside your personal limits today.</p>'}
-          ${a.flags[0] ? chart(c, a.flags[0].key, S.day, 45, 520, 150) + `<p class="note">${H.METRICS[a.flags[0].key].label}, last 45 days.</p>` : ''}</div>
+    return `${strip}<h1>Why, and what now</h1><p class="sub">Every status comes with its reason and a next step. You decide what to act on.</p>
+      ${hero(c, a, false)}
+      <div class="grid g2 mt">
+        <div class="card"><h2>Why am I seeing this?</h2>${a.why.length ? `<ul class="why">${a.hard.map(w => `<li>${w}</li>`).join('')}${a.flags.map(f => `<li>${f.text}${f.persistent ? '' : ' <span class="note">Too early to call a trend.</span>'}<div class="bar"><i style="width:${Math.min(100, f.s / 3.4 * 100).toFixed(0)}%;background:${f.persistent ? (f.strong ? 'var(--l4)' : 'var(--l3)') : 'var(--l1)'}"></i></div></li>`).join('')}</ul>` : '<p class="note">No indicator is outside your personal limits today.</p>'}</div>
         <div class="card"><h2>What do I do now?</h2><ol class="steps">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol>
           ${a.level >= 2 ? `<button class="btn pri" onclick="UI.go('report')">Open Earth report</button>` : ''}
-          <p class="note" style="margin-top:14px">Guidance is conservative, rule-based decision support. It does not diagnose. A flight system would need clinical validation and flight-surgeon-approved protocols.</p></div>
+          <p class="note" style="margin-top:14px">Conservative, rule-based decision support. It does not diagnose. A flight system would need clinical validation and protocols approved by flight surgeons.</p></div>
       </div>
-      <div class="card" style="margin-top:14px"><h2>Decision table (the rule that fired is highlighted)</h2>
-        <table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr class="${r.n === a.rule ? 'hit' : ''}"><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div>`;
+      <div class="card mt"><h2>Decision table · the rule that fired is highlighted</h2>
+        <div style="overflow-x:auto"><table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr class="${r.n === a.rule ? 'hit' : ''}"><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div></div>`;
   };
 
+  function drawOrbit() {
+    const cv = $('orb'); if (!cv) return;
+    const W = cv.parentElement.clientWidth, Ht = Math.round(Math.min(400, Math.max(250, W * .42))), dpr = window.devicePixelRatio || 1;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(Ht * dpr); cv.style.height = Ht + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, Ht);
+    const cy = Math.cos(S.yaw), sy = Math.sin(S.yaw), cp = Math.cos(S.pitch), sc = Math.min(W / 3.5, (Ht - 40) / (3.05 * Math.max(cp, .25)));
+    const P = p => [W / 2 + sc * (p[0] * cy - p[1] * sy), Ht / 2 - sc * (p[0] * sy + p[1] * cy) * cp];
+    const ring = (r, col) => { g.beginPath(); for (let i = 0; i <= 120; i++) { const a = i / 120 * 6.2832, q = P([r * Math.cos(a), r * Math.sin(a)]); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.strokeStyle = col; g.lineWidth = 1; g.stroke(); };
+    const arc = (a, b, col, dash) => { g.beginPath(); for (let d = a; d < b; d += 2) { const q = P(craft(d)); d === a ? g.moveTo(q[0], q[1]) : g.lineTo(q[0], q[1]); } const q = P(craft(b)); g.lineTo(q[0], q[1]); g.setLineDash(dash); g.strokeStyle = col; g.lineWidth = 1.6; g.stroke(); g.setLineDash([]); };
+    const dot = (q, r, col) => { g.beginPath(); g.arc(q[0], q[1], r, 0, 6.2832); g.fillStyle = col; g.fill(); };
+    const lab = (q, t, dx, dy, col) => { g.fillStyle = col || '#c9ccd1'; g.font = '600 12px system-ui,sans-serif'; g.textAlign = dx > 0 ? 'left' : dx < 0 ? 'right' : 'center'; g.fillText(t, q[0] + dx, q[1] + dy); };
+    ring(1, '#34465c'); ring(1.524, '#5c4433');
+    arc(S.day, TOF, '#5d626b', [3, 5]); arc(0, S.day, '#e8e9eb', []);
+    const e = P(earth(S.day)), m = P(mars(S.day)), c = P(craft(S.day)), sun = P([0, 0]);
+    g.beginPath(); g.moveTo(c[0], c[1]); g.lineTo(e[0], e[1]); g.setLineDash([4, 5]); g.strokeStyle = '#e0c04a'; g.lineWidth = 1.4; g.stroke(); g.setLineDash([]);
+    dot(sun, 7, '#f1d9a0'); dot(e, 6, '#5b9fe0'); dot(m, 5, '#ee8a3c'); dot(c, 4, '#ffffff');
+    g.beginPath(); g.arc(c[0], c[1], 9, 0, 6.2832); g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.stroke();
+    if (S.pk != null) dot([c[0] + (e[0] - c[0]) * S.pk, c[1] + (e[1] - c[1]) * S.pk], 4.5, '#e0c04a');
+    const side = m[0] >= c[0] ? 1 : -1; lab(sun, 'Sun', 0, 21, '#8a8f98'); lab(e, 'Earth', 0, e[1] > c[1] ? 21 : -12); lab(m, 'Mars', 12 * side, 4); lab(c, 'You · MD ' + S.day, -14 * side, c[1] >= e[1] ? 18 : -10, '#ffffff');
+    g.fillStyle = '#e0c04a'; g.font = '11px ui-monospace,Menlo,Consolas,monospace'; g.textAlign = 'left'; g.fillText('signal path ' + mmss(LS(S.day)), 10, Ht - 10);
+    let drag = null;
+    cv.onpointerdown = ev => { drag = [ev.clientX, ev.clientY]; cv.setPointerCapture(ev.pointerId); cv.style.cursor = 'grabbing'; };
+    cv.onpointermove = ev => { if (!drag) return; S.yaw += (ev.clientX - drag[0]) * .01; S.pitch = Math.min(1.35, Math.max(0, S.pitch + (ev.clientY - drag[1]) * .006)); drag = [ev.clientX, ev.clientY]; drawOrbit(); };
+    cv.onpointerup = cv.onpointercancel = () => { drag = null; cv.style.cursor = 'grab'; };
+  }
   function reportText(c, a) {
-    const ls = H.lightSec(S.day);
-    return [
-      'HEALTH COPILOT // EARTH REPORT // SIMULATED DATA',
+    const ls = LS(S.day);
+    return ['HEALTH COPILOT // EARTH REPORT // SIMULATED DATA',
       'MD ' + S.day + ' | CREW ' + c.name.toUpperCase() + ' (' + c.role + ')',
       'TRIAGE L' + a.level + ' ' + a.name + (a.recovering ? ' (TREND RECOVERING)' : ''),
       a.patternName ? 'PATTERN ' + a.patternName : null,
@@ -446,78 +699,89 @@ svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consola
       'FLAGS ' + (a.flags.length ? a.flags.map(f => f.short).join('; ') : 'none'),
       'ACTION ' + a.steps[0],
       'REQUEST ' + (a.level >= 4 ? 'PRIORITY flight-surgeon consult' : a.level >= 2 ? 'review at next scheduled conference; no real-time reply needed' : 'none; routine status'),
-      'ONE-WAY LIGHT TIME ' + mmss(ls) + ' | EARLIEST REPLY +' + mmss(2 * ls)
-    ].filter(Boolean).join('\n');
+      'ONE-WAY LIGHT TIME ' + mmss(ls) + ' | EARLIEST REPLY +' + mmss(2 * ls)].filter(Boolean).join('\n');
   }
   V.report = c => {
-    const a = H.assess(c, S.day), txt = reportText(c, a), key = c.id + S.day, st = S.sent[key], ls = H.lightSec(S.day);
-    return `<h1>Earth report · ${c.name}</h1><p class="sub">A compact summary for mission control. At this distance a question and its answer are at least ${mmss(2 * ls)} apart, so the report is written to stand on its own.</p>
-      <div class="card"><pre class="rep mono">${txt}</pre>
-        <p class="note" style="margin:10px 0">${new Blob([txt]).size} bytes of plain text. Self-ratings are included only when the crew member sends the report.</p>
-        ${st ? `<div class="prog"><i id="pbar" style="width:${st === 'done' ? 100 : 0}%"></i></div><div id="pmsg">${st === 'done' ? `Delivered to mission control after ${mmss(ls)}. Earliest possible reply in another ${mmss(ls)}.` : 'Transmitting…'}</div>` : `<button class="btn pri" onclick="UI.send()">Send to Earth</button>`}
-      </div>
-      <div class="card" style="margin-top:14px"><h2>What you can do while you wait</h2><ol class="steps">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol></div>`;
+    const a = H.assess(c, S.day), txt = reportText(c, a), st = S.sent[c.id + S.day], ls = LS(S.day);
+    return `${strip}<h1>Earth is ${mmss(ls)} away</h1><p class="sub">A question and its answer are at least ${mmss(2 * ls)} apart, so the report is written to stand on its own and you already have your next step.</p>
+      <div class="card"><h2>Orbital model · drag to rotate</h2><canvas id="orb" role="img" aria-label="Model of the inner solar system on mission day ${S.day}: the spacecraft is ${distAU(S.day).toFixed(2)} astronomical units from Earth, a one-way signal delay of ${mmss(ls)}"></canvas>
+        <div class="kv" style="margin-top:10px"><div><span>Distance to Earth</span><b>${distAU(S.day).toFixed(2)}<small>AU</small></b></div><div><span>One-way signal delay</span><b>${mmss(ls)}</b></div><div><span>Earliest possible reply</span><b>+${mmss(2 * ls)}</b></div><div><span>Report size</span><b>${new Blob([txt]).size}<small>bytes</small></b></div></div>
+        <p class="note" style="margin:8px 0 0">Computed model: a Hohmann transfer between circular, coplanar Earth and Mars orbits (about 259 days), drawn to scale. Real trajectories and planetary orbits differ. Signal delay is the Earth-to-spacecraft distance divided by the speed of light.</p></div>
+      <div class="grid g2 mt"><div class="card"><h2>Report for mission control</h2><pre class="rep mono">${txt}</pre>
+        ${st ? `<div class="prog"><i id="pbar" style="width:${st === 'done' ? 100 : 0}%"></i></div><div id="pmsg">${st === 'done' ? `Delivered after ${mmss(ls)}. Earliest possible reply in another ${mmss(ls)}.` : 'Transmitting…'}</div>` : `<div class="hact"><button class="btn pri" onclick="UI.send()">Send to Earth</button></div><p class="note" style="margin:8px 0 0">Self-ratings leave this device only when you send the report.</p>`}</div>
+        <div class="card"><h2>While you wait</h2><ol class="steps">${a.steps.map(s => `<li>${s}</li>`).join('')}</ol></div></div>`;
   };
 
+  function rad(d) {
+    const W = 520, Ht = 190, L = 40, R = 12, Tp = 14, B = 22, X = x => L + x / H.DAYS * (W - L - R), Y = v => Tp + (1 - v / 660) * (Ht - Tp - B);
+    let p = 'M' + X(0) + ' ' + Y(0); for (let x = 1; x <= d; x++) p += 'L' + X(x).toFixed(1) + ' ' + Y(H.dose(x)).toFixed(1);
+    const now = H.dose(d), end = now + 1.84 * (H.DAYS - d);
+    return `<svg viewBox="0 0 ${W} ${Ht}" width="100%" role="img" aria-label="Cumulative simulated radiation dose ${now.toFixed(0)} millisievert of a 600 millisievert career limit">
+      <line x1="${L}" x2="${W - R}" y1="${Y(600)}" y2="${Y(600)}" stroke="#e5484d" stroke-dasharray="5 5"/><text x="${W - R}" y="${Y(600) - 5}" text-anchor="end" style="fill:#e5484d">600 mSv career limit</text>
+      <path d="${p}L${X(d).toFixed(1)} ${Y(0)}Z" fill="#e8e9eb" opacity=".14"/><path d="${p}" fill="none" stroke="#e8e9eb" stroke-width="2"/>
+      <line x1="${X(d)}" y1="${Y(now)}" x2="${X(H.DAYS)}" y2="${Y(end)}" stroke="#9a9fa8" stroke-dasharray="2 5"/>
+      ${d >= H.SPE_DAY ? `<line x1="${X(H.SPE_DAY)}" x2="${X(H.SPE_DAY)}" y1="${Y(H.dose(H.SPE_DAY)) - 26}" y2="${Y(H.dose(H.SPE_DAY))}" stroke="#e0c04a"/><text x="${X(H.SPE_DAY) - 4}" y="${Y(H.dose(H.SPE_DAY)) - 30}" text-anchor="end" style="fill:#e0c04a">solar particle event (simulated)</text>` : ''}
+      <circle cx="${X(d)}" cy="${Y(now)}" r="4" fill="#fff"/>
+      <text x="${L - 6}" y="${Y(0) + 3}" text-anchor="end">0</text><text x="${L - 6}" y="${Y(300) + 3}" text-anchor="end">300</text><text x="${L}" y="${Ht - 5}">MD 1</text><text x="${W - R}" y="${Ht - 5}" text-anchor="end">MD ${H.DAYS}</text></svg>`;
+  }
   V.crew = () => {
-    const dose = H.dose(S.day), pct = Math.min(100, dose / H.DOSE_LIMIT * 100);
-    const avg = k => (crew.reduce((s, c) => s + val(c, k, S.day), 0) / crew.length).toFixed(1);
-    const cards = crew.map(c => { const a = H.assess(c, S.day);
-      return `<div class="card" style="border-left:6px solid ${COL[a.level]}"><div class="lvl" style="color:${COL[a.level]}">${a.name}${a.recovering ? ' · RECOVERING' : ''}</div><h2 style="margin:4px 0">${c.name}</h2><div class="note">${c.role}</div>
-        <p style="margin:8px 0">${a.level >= 2 ? a.flags.filter(f => f.persistent).length + ' indicator(s) outside personal limits' : 'No sustained changes'}</p>
-        <button class="btn sm" onclick="UI.who('${c.id}','today')">Open</button></div>`; }).join('');
-    const dk = S.donki;
-    return `<h1>Crew overview</h1><p class="sub">Shared view. Shows triage level only; individual numbers and self-ratings stay on each person’s own screen.</p>
-      <div class="grid g4">${cards}</div>
-      <div class="grid g2" style="margin-top:14px">
-        <div class="card"><h2>Crew average today (anonymized)</h2><div style="display:flex;gap:26px;flex-wrap:wrap">
-          <div><div class="note">Mood</div><b class="mono" style="font-size:22px">${avg('mood')}</b><span class="note"> /10</span></div>
-          <div><div class="note">Stress</div><b class="mono" style="font-size:22px">${avg('stress')}</b><span class="note"> /10</span></div>
-          <div><div class="note">Sleep</div><b class="mono" style="font-size:22px">${avg('sleepH')}</b><span class="note"> h</span></div></div></div>
-        <div class="card"><h2>Cumulative radiation dose (simulated)</h2>
-          <b class="mono" style="font-size:22px">${dose.toFixed(0)} mSv</b> <span class="note">of ${H.DOSE_LIMIT} mSv career limit (NASA-STD-3001)</span>
-          <div class="prog"><i style="width:${pct}%;background:${pct > 80 ? 'var(--l3)' : 'var(--acc)'}"></i></div>
-          <p class="note">Model: 1.84 mSv/day in cruise, the rate measured by the RAD instrument on the way to Mars (Zeitlin et al., 2013)${S.day >= H.SPE_DAY ? `, plus a simulated solar particle event on day ${H.SPE_DAY}` : ''}.</p></div>
-      </div>
-      <div class="card" style="margin-top:14px"><h2>Space weather relay — real data from NASA DONKI <span class="tag" style="color:var(--l0)">REAL NASA DATA</span></h2>
-        ${dk ? `<div style="display:flex;gap:26px;flex-wrap:wrap"><div><div class="note">Solar flares, last 30 days</div><b class="mono" style="font-size:22px">${dk.flares}</b></div>
-          <div><div class="note">Strongest flare</div><b class="mono" style="font-size:22px">${dk.maxClass || '—'}</b></div>
-          <div><div class="note">Solar energetic particle events</div><b class="mono" style="font-size:22px">${dk.sep}</b></div></div>
-          <p style="margin:10px 0 0">${dk.sep ? 'A solar energetic particle event was reported in the last 30 days (most recent: ' + dk.lastSep + '). Rule: review storm-shelter procedure and log time spent in the shelter.' : 'No solar energetic particle events reported in the last 30 days. No action.'}</p>
-          <p class="note">Fetched ${new Date(dk.at).toLocaleString()} from api.nasa.gov/DONKI and stored on this device, so it stays readable offline. These are today’s real Sun conditions shown next to a simulated mission.</p>` : `<p class="note" id="dkmsg">${S.dkErr || 'No space weather data stored yet.'}</p>`}
-        <button class="btn sm" onclick="UI.donki()">Refresh from NASA</button></div>`;
+    const dose = H.dose(S.day), avg = k => (crew.reduce((s, c) => s + val(c, k, S.day), 0) / crew.length).toFixed(1), dk = S.donki;
+    const cards = crew.map(c => { const a = H.assess(c, S.day), n = a.flags.filter(f => f.persistent).length;
+      return `<div class="card ccard" style="--lc:${LV[a.level]}"><div class="eyebrow" style="display:flex;gap:6px;align-items:center">${ico(LI[a.level], 15)}${a.name}</div><h3>${c.name}</h3><div class="note">${c.role}${a.recovering ? ' · recovering' : ''}</div>
+        <p style="margin:8px 0 10px">${a.level >= 2 ? n + ' indicator' + (n === 1 ? '' : 's') + ' outside personal limits' : 'No sustained changes'}</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><button class="btn sm" onclick="UI.who('${c.id}','today')">Open</button>${trail(c, S.day)}</div></div>`; }).join('');
+    return `${strip}<h1>Crew and environment</h1><p class="sub">The shared view shows triage level only. Individual numbers and self-ratings stay on each person’s own screen.</p>
+      <div class="grid g4 crewg">${cards}</div>
+      <div class="grid g2 mt">
+        <div class="card"><h2>Cumulative radiation dose · simulated</h2><div class="kv"><div><span>So far</span><b>${dose.toFixed(0)}<small>mSv</small></b></div><div><span>Share of career limit</span><b>${(dose / H.DOSE_LIMIT * 100).toFixed(0)}<small>%</small></b></div></div>
+          ${rad(S.day)}<p class="note" style="margin:6px 0 0">Model: 1.84 mSv/day in cruise, the rate NASA’s RAD instrument measured on the way to Mars (Zeitlin et al., 2013). Limit from NASA-STD-3001. The size of the solar particle event is an invented value.</p></div>
+        <div><div class="card"><h2>Space weather relay <span class="tag" style="color:var(--l0)">REAL NASA DATA</span></h2>
+          ${dk ? `<div class="kv"><div><span>Solar flares, 30 days</span><b>${dk.flares}</b></div><div><span>Strongest flare</span><b>${dk.maxClass || '—'}</b></div><div><span>Particle events</span><b>${dk.sep}</b></div></div>
+          <p style="margin:10px 0 0">${dk.sep ? 'A solar energetic particle event was reported in the last 30 days (most recent: ' + dk.lastSep + '). Rule: review the storm-shelter procedure and log time spent in the shelter.' : 'No solar energetic particle events reported in the last 30 days. No action.'}</p>
+          <p class="note">From NASA DONKI via api.nasa.gov, fetched ${new Date(dk.at).toLocaleString()} and stored on this device so it stays readable offline. These are today’s real Sun conditions, shown beside a simulated mission.</p>` : `<p class="note" id="dkmsg">${S.dkErr || 'No space weather data stored yet.'}</p>`}
+          <button class="btn sm" onclick="UI.donki()">Refresh from NASA</button></div>
+        <div class="card mt"><h2>Crew average today · anonymized</h2><div class="kv"><div><span>Mood</span><b>${avg('mood')}<small>/10</small></b></div><div><span>Stress</span><b>${avg('stress')}<small>/10</small></b></div><div><span>Sleep</span><b>${avg('sleepH')}<small>h</small></b></div></div></div></div>
+      </div>`;
   };
-
-  V.method = () => `<h1>How it works</h1><p class="sub">Everything here is simple enough to check by hand. No black-box model.</p>
+  V.method = () => `${strip}<h1>How it works</h1><p class="sub">Everything here is simple enough to check by hand. There is no black-box model.</p>
     <div class="grid g2">
       <div class="card"><h2>1 · Personal baseline</h2><p>For each crew member and each of ${H.KEYS.length} indicators, the mean and standard deviation of 30 pre-flight days define that person’s normal. Nobody is compared with a population average.</p>
-        <h2>2 · Drift detection</h2><p>Each day’s value becomes a z-score against the personal baseline. An exponentially weighted moving average (EWMA, weight ${H.LAM}) accumulates small shifts that a fixed threshold would miss. An indicator is beyond its limit when the EWMA passes ${H.H1} in the harmful direction (a standard 3-sigma EWMA control limit).</p>
-        <h2>3 · Triage</h2><p>The decision table turns counts of flagged indicators, how long they have lasted and which body systems they belong to into one of five levels. Three fixed safety limits bypass the baseline entirely.</p></div>
-      <div class="card"><h2>Decision table</h2><table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div>
-      <div class="card"><h2>Data</h2><p><b>Simulated:</b> a 4-person crew, 30 pre-flight days and a 250-day transit, generated in the browser from a fixed seed. Three scenarios are injected (sleep disruption, cardiovascular deconditioning, behavioral health decline) plus one solar particle event. Crew names are fictional.</p>
-        <p><b>Real NASA data:</b> the space weather panel reads solar flare and solar energetic particle events from NASA’s DONKI database (Space Weather Database Of Notifications, Knowledge, Information).</p>
-        <p><b>Parameters from published work:</b> reaction-time lapse = response slower than 500 ms (Basner &amp; Dinges, 2011); cruise radiation 1.84 mSv/day (Zeitlin et al., 2013); 600 mSv career limit (NASA-STD-3001).</p></div>
-      <div class="card"><h2>Limits of this prototype</h2><ul class="clean"><li>Not a diagnostic device. Thresholds and guidance have not been clinically validated.</li><li>Simulated noise is simpler than real physiology: no sensor dropouts, no day-to-day correlation, and no normal adaptation to microgravity.</li><li>Recovery in the demo assumes the crew member follows the recommendation.</li><li>A flight version would re-baseline in flight and use protocols approved by flight surgeons.</li></ul></div>
+        <h2>2 · Drift detection</h2><p>Each day’s value becomes a z-score against the personal baseline. An exponentially weighted moving average (EWMA, weight ${H.LAM}) accumulates small shifts that a fixed threshold would miss. An indicator is beyond its limit when the EWMA passes ${H.H1} in the harmful direction, the standard 3-sigma EWMA control limit (Roberts, 1959).</p>
+        <h2>3 · Triage</h2><p>A five-row decision table turns the number of flagged indicators, how long they have lasted and which body systems they belong to into one of five levels. Three fixed safety limits bypass the baseline entirely.</p>
+        <h2>4 · Signal delay</h2><p style="margin-bottom:0">The Earth view computes a Hohmann transfer between circular, coplanar Earth and Mars orbits and divides the Earth-to-spacecraft distance by the speed of light. It is a simplified model, not a real mission trajectory.</p></div>
+      <div class="card"><h2>Decision table</h2><div style="overflow-x:auto"><table><tr><th>#</th><th>When</th><th>Then</th></tr>${H.RULES.map(r => `<tr><td class="mono">${r.n}</td><td>${r.when}</td><td>${r.then}</td></tr>`).join('')}</table></div></div>
+      <div class="card"><h2>What is real and what is simulated</h2>
+        <p><b>Simulated:</b> the 4-person crew, their 30 pre-flight days and the 250-day transit are generated in the browser from a fixed seed. Crew names are fictional. Baseline values and the size of each injected scenario (sleep disruption, cardiovascular deconditioning, behavioral health decline) are illustrative: chosen to be physiologically plausible, not taken from spaceflight datasets. The 30 mSv solar particle event is an invented value.</p>
+        <p><b>Real NASA data:</b> the space weather panel reads solar flare and solar energetic particle events from NASA’s DONKI database.</p>
+        <p style="margin-bottom:0"><b>From published sources:</b> only three numbers. Cruise radiation of 1.84 mSv/day (Zeitlin et al., 2013, Mars Science Laboratory RAD); the 600 mSv career limit (NASA-STD-3001); and a reaction-time lapse defined as a response of 500 ms or slower (Basner &amp; Dinges, 2011).</p></div>
+      <div class="card"><h2>Limits of this prototype</h2><ul class="clean"><li>Not a diagnostic device. Thresholds and guidance have not been clinically validated.</li><li>The simulation is simpler than real physiology: no sensor dropouts, no day-to-day correlation, and no normal adaptation to microgravity.</li><li>Recovery in the tour is scripted. It assumes the crew member follows the recommendation.</li><li>The baseline is fixed at pre-flight values. A flight version would re-baseline in flight and use protocols approved by flight surgeons.</li><li>The reaction test is a 30-second version of a psychomotor vigilance test and depends on the device’s input lag.</li></ul></div>
     </div>`;
 
-  function render() { renderSide(); renderTop(); $('view').innerHTML = V[S.view](cur()); }
+  function renderView(anim) {
+    const v = $('view'); hideTip();
+    v.innerHTML = V[S.view](cur());
+    if (anim) { v.classList.remove('enter'); void v.offsetWidth; v.classList.add('enter'); }
+    drawHeat(); drawOrbit();
+  }
+  function render(anim) { renderRail(); renderTop(); renderView(anim); }
+  let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { drawHeat(); drawOrbit(); }, 120); });
 
-  // ---------- check-in (reaction test + sliders) ----------
+  // ---------- check-in (reaction test + self-ratings) ----------
   let pv = null;
   function checkin() {
-    $('modal').innerHTML = `<div class="modal"><div class="card"><h2>Daily check-in · reaction test</h2>
-      <p class="note" style="margin:0">Click the box (or press space) as soon as the counter appears. 30-second demo version of a psychomotor vigilance test.</p>
-      <div class="pvt mono" id="pvt" onclick="UI.pvtTap()">Click to begin</div>
-      <div style="display:flex;justify-content:space-between"><span class="note" id="pvtinfo">Lapse = slower than 500 ms.</span><button class="btn sm" onclick="UI.close()">Cancel</button></div></div></div>`;
-    pv = { state: 'idle', rts: [], fs: 0 };
+    $('modal').innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Daily check-in"><div class="card"><h2>Daily check-in · 1 of 2</h2><h3>Reaction test</h3>
+      <p class="note" style="margin:0">Tap the box (or press space) the moment the counter appears. 30-second version of a psychomotor vigilance test.</p>
+      <button class="pvt mono" id="pvt" style="width:100%" onclick="UI.pvtTap()">Tap to begin</button>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span class="note">A lapse is a response of 500 ms or slower.</span><button class="btn sm" onclick="UI.close()">Cancel</button></div></div></div>`;
+    pv = { state: 'idle', rts: [], fs: 0 }; $('pvt').focus();
   }
   function pvtNext() { pv.state = 'wait'; $('pvt').textContent = '·'; $('pvt').style.color = 'var(--mut)'; pv.timer = setTimeout(() => { pv.state = 'go'; pv.shown = performance.now(); $('pvt').style.color = 'var(--l2)'; tick(); }, 1500 + Math.random() * 2500); }
   function tick() { if (!pv || pv.state !== 'go' || !$('pvt')) return; $('pvt').textContent = Math.round(performance.now() - pv.shown); requestAnimationFrame(tick); }
   function pvtTap() {
     if (!pv) return;
-    if (pv.state === 'idle') { pv.t0 = performance.now(); pv.end = setTimeout(pvtDone, 30000); pvtNext(); }
+    if (pv.state === 'idle') { pv.end = setTimeout(pvtDone, 30000); pvtNext(); }
     else if (pv.state === 'wait') { pv.fs++; clearTimeout(pv.timer); $('pvt').textContent = 'Too early'; pv.state = 'pause'; setTimeout(() => pv && pv.state === 'pause' && pvtNext(), 700); }
-    else if (pv.state === 'go') { const rt = performance.now() - pv.shown; pv.rts.push(rt); pv.state = 'pause'; $('pvt').textContent = Math.round(rt) + ' ms'; $('pvt').style.color = 'var(--text)'; setTimeout(() => pv && pv.state === 'pause' && pvtNext(), 600); }
+    else if (pv.state === 'go') { const rt = performance.now() - pv.shown; pv.rts.push(rt); pv.state = 'pause'; $('pvt').textContent = Math.round(rt) + ' ms'; $('pvt').style.color = 'var(--tx)'; setTimeout(() => pv && pv.state === 'pause' && pvtNext(), 600); }
   }
   function pvtDone() {
     clearTimeout(pv.timer); if (pv.state === 'go') pv.rts.push(performance.now() - pv.shown);
@@ -525,9 +789,9 @@ svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consola
     const n = pv.rts.length, mean = n ? pv.rts.reduce((a, b) => a + b, 0) / n : 500, lapses = pv.rts.filter(r => r >= 500).length;
     pv.res = { rt: Math.round(mean), lapses };
     const sl = (k, l, v) => `<div class="sl"><label for="s_${k}">${l}</label><input id="s_${k}" type="range" min="1" max="10" value="${v}" oninput="this.nextElementSibling.textContent=this.value"><b class="mono">${v}</b></div>`;
-    $('modal').innerHTML = `<div class="modal"><div class="card"><h2>Reaction test complete</h2>
-      <p>Mean reaction time <b class="mono">${pv.res.rt} ms</b> over ${n} responses · lapses <b class="mono">${lapses}</b> · early taps <b class="mono">${pv.fs}</b></p>
-      <h2>How are you today?</h2>${sl('mood', 'Mood', 7)}${sl('fatigue', 'Fatigue', 3)}${sl('stress', 'Stress', 3)}
+    $('modal').innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Daily check-in"><div class="card"><h2>Daily check-in · 2 of 2</h2><h3>How are you today?</h3>
+      <div class="kv" style="margin:10px 0 14px"><div><span>Mean reaction time</span><b>${pv.res.rt}<small>ms</small></b></div><div><span>Responses</span><b>${n}</b></div><div><span>Lapses</span><b>${lapses}</b></div><div><span>Early taps</span><b>${pv.fs}</b></div></div>
+      ${sl('mood', 'Mood', 7)}${sl('fatigue', 'Fatigue', 3)}${sl('stress', 'Stress', 3)}
       <p class="note">1 = lowest, 10 = highest. Saved on this device only.</p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="UI.close()">Discard</button><button class="btn pri" onclick="UI.save()">Save check-in</button></div></div></div>`;
   }
@@ -537,17 +801,18 @@ svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consola
     store.set('hc_checkins', overrides); crew = H.build(overrides); close(); render();
   }
   function close() { if (pv) { clearTimeout(pv.timer); clearTimeout(pv.end); } pv = null; $('modal').innerHTML = ''; }
-  document.addEventListener('keydown', e => { if (pv && e.code === 'Space') { e.preventDefault(); pvtTap(); } });
+  document.addEventListener('keydown', e => { if (pv && e.code === 'Space') { e.preventDefault(); pvtTap(); } else if (pv && e.code === 'Escape') close(); });
 
   // ---------- Earth report send (time-compressed) ----------
   function send(ms) {
-    const key = S.who + S.day, ls = H.lightSec(S.day); S.sent[key] = 'going'; render();
+    const key = S.who + S.day, ls = LS(S.day); S.sent[key] = 'going'; renderView();
     const t0 = performance.now(), dur = ms || 5000;
     (function step() {
       const p = Math.min(1, (performance.now() - t0) / dur), bar = $('pbar'), msg = $('pmsg');
       if (!bar || S.sent[key] !== 'going') return;
-      bar.style.width = p * 100 + '%'; msg.textContent = 'Signal in transit: ' + mmss(Math.round(p * ls)) + ' of ' + mmss(ls) + ' (time compressed for the demo)';
-      if (p < 1) requestAnimationFrame(step); else { S.sent[key] = 'done'; render(); }
+      bar.style.width = p * 100 + '%'; msg.textContent = 'Signal in transit: ' + mmss(Math.round(p * ls)) + ' of ' + mmss(ls) + ' (time compressed)';
+      S.pk = p; drawOrbit();
+      if (p < 1) requestAnimationFrame(step); else { S.pk = null; S.sent[key] = 'done'; renderView(); }
     })();
   }
 
@@ -560,40 +825,49 @@ svg text{fill:var(--mut);font-size:10.5px;font-family:ui-monospace,Menlo,Consola
       const rank = c => ({ A: 0, B: 1, C: 2, M: 3, X: 4 }[c[0]] || 0) * 100 + parseFloat(c.slice(1) || 0);
       const classes = f.map(x => x.classType).filter(Boolean).sort((a, b) => rank(b) - rank(a));
       S.dkErr = ''; S.donki = { at: Date.now(), flares: f.length, maxClass: classes[0] || '', sep: s.length, lastSep: s.length ? String(s[s.length - 1].eventTime || '').slice(0, 10) : '' };
-      store.set('hc_donki', S.donki); if (S.view === 'crew') render();
-    } catch (e) { S.dkErr = 'Could not reach NASA DONKI (offline or rate limit). Nothing stored yet; try again when online.'; const m = $('dkmsg'); if (m) m.textContent = S.dkErr; }
+      store.set('hc_donki', S.donki); if (S.view === 'crew') renderView();
+    } catch (e) { S.dkErr = 'Could not reach NASA DONKI (offline or rate limit). ' + (S.donki ? '' : 'Nothing stored yet; try again when online.'); const m = $('dkmsg'); if (m) m.textContent = S.dkErr; }
   }
 
-  // ---------- demo mode ----------
-  const wait = ms => new Promise(r => setTimeout(r, ms));
-  function cap(i, n, t) { const el = $('cap'); el.style.display = 'block'; el.innerHTML = `<b>DEMO ${i}/${n}</b><div>${t}</div>`; }
-  async function demo() {
-    if (S.demo) { S.demo = false; $('cap').style.display = 'none'; render(); return; }
-    S.demo = true; const on = () => S.demo, N = 6;
-    const show = async (i, t, ms) => { cap(i, N, t); render(); await wait(ms); };
-    S.who = 'chen'; S.view = 'today'; S.day = 132; S.sent = {};
-    await show(1, 'Mission day 132, en route to Mars. Flight Engineer Chen feels fine and every indicator is inside her personal baseline.', 4500); if (!on()) return;
-    cap(2, N, 'Over the next days her sleep shortens, HRV drifts down and reaction-time lapses rise. Health Copilot starts watching on day 137.');
-    for (let d = 133; d <= 140 && on(); d++) { S.day = d; render(); await wait(1100); } if (!on()) return;
-    await show(3, 'Day 140. Health Copilot has escalated from Monitor to Self-care action: several signals have drifted together. Her own fatigue rating only left its normal range today, three days after the first flag.', 5500); if (!on()) return;
-    S.view = 'alert'; await show(4, 'It explains why in plain language and gives a clear next step: a sleep and light schedule change and a repeat test. The rule that fired is visible.', 7000); if (!on()) return;
-    S.view = 'report'; render(); send(4000);
-    cap(5, N, 'A compact report goes to Earth. A reply is many minutes away, so she already has what she needs to act.'); await wait(6500); if (!on()) return;
-    S.view = 'today';
-    for (let d = 141; d <= 144 && on(); d++) { S.day = d; cap(6, N, 'She follows the plan. Day ' + d + ': the trend is recovering toward her baseline.'); render(); await wait(1600); } if (!on()) return;
-    S.view = 'trends'; S.range = 30; cap(6, N, 'Three days later the drift and the recovery are both visible against her personal baseline. Demo complete.'); render(); await wait(7000);
-    S.demo = false; $('cap').style.display = 'none'; render();
+  // ---------- guided tour ----------
+  const nap = ms => new Promise(r => setTimeout(r, ms));
+  function tourBar() {
+    const el = $('tour'); if (!T.on) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.innerHTML = `<div class="tprog"><i style="width:${((T.i + 1) / T.n * 100).toFixed(0)}%"></i></div><div class="tin"><div class="tstep">TOUR ${T.i + 1} / ${T.n}${T.paused ? ' · PAUSED' : ''}</div><div class="tcap">${T.text}</div>
+      <div class="tbtn"><button class="btn sm" onclick="UI.tpause()">${T.paused ? '▶ Resume' : '❚❚ Pause'}</button><button class="btn sm" onclick="UI.tnext()">Next ▸</button>${T.i < 2 ? '<button class="btn sm" onclick="UI.tjump()">Skip to day 140</button>' : ''}<button class="btn sm" onclick="UI.tour()">End tour</button></div></div>`;
+  }
+  async function hold(ms) { let t = 0; while (t < ms) { if (T.stop) throw 0; if (T.skip) return; await nap(80); if (!T.paused) t += 80; } }
+  const say = t => { T.text = t; tourBar(); };
+  const STEPS = [
+    async () => { S.who = 'chen'; S.view = 'today'; S.day = 132; S.sent = {}; render(true); say('Mission day 132, en route to Mars. Flight Engineer Chen feels fine, and every indicator sits inside her personal baseline.'); await hold(5000); },
+    async () => { S.view = 'trends'; S.hwin = 30; S.hmode = 'map'; S.metric = 'hrv'; render(true); say('Her sleep shortens, HRV drifts down and reaction lapses rise. No single day looks alarming, but the drift map starts to warm. Copilot begins watching on day 137.');
+      for (let d = 133; d <= 139; d++) { S.day = d; render(); await hold(1100); } await hold(1200); },
+    async () => { S.day = 140; S.view = 'today'; render(true); say('Day 140. Copilot escalates to Self-care action: several signals have drifted together. Her own fatigue rating only left its normal range today, three days after the first flag.'); await hold(7000); },
+    async () => { S.view = 'alert'; render(true); say('It says why in plain language and gives a clear next step: change the sleep and light schedule, then repeat the test tomorrow. The rule that fired is on screen.'); await hold(8000); },
+    async () => { S.view = 'report'; render(true); send(4500); say('A report under 1 kB leaves for Earth. On day 140 a reply is at least ' + Math.floor(2 * LS(140) / 60) + ' minutes away and the gap keeps growing, so she already has what she needs to act.'); await hold(7500); },
+    async () => { S.view = 'today'; for (let d = 141; d <= 143; d++) { S.day = d; render(d === 141); say('She follows the plan. Day ' + d + ': the trend is recovering toward her baseline.'); await hold(1900); } },
+    async () => { S.view = 'trends'; S.hwin = 30; S.metric = 'hrv'; render(true); const dt = $('detail'); if (dt) dt.scrollIntoView({ block: 'center' }); say('Three days later her daily values are back inside her own band, and the map cools as the smoothed trend catches up. In this simulation she follows the advice. The tool explains and suggests; it never diagnoses.'); await hold(9000); window.scrollTo(0, 0); }
+  ];
+  async function tour() {
+    if (T.on) { T.stop = true; T.on = false; tourBar(); renderTop(); return; }
+    Object.assign(T, { on: true, paused: false, skip: false, stop: false, jump: -1, i: 0 });
+    try { while (T.i < STEPS.length) { T.skip = false; await STEPS[T.i](); if (T.stop) throw 0; if (T.jump >= 0) { T.i = T.jump; T.jump = -1; } else T.i++; } } catch (e) {}
+    T.on = false; T.stop = false; tourBar(); renderTop();
   }
 
   window.UI = {
-    go(v) { S.view = v; render(); window.scrollTo(0, 0); },
-    who(id, v) { S.who = id; if (v) S.view = v; render(); },
+    go(v) { S.view = v; render(true); window.scrollTo(0, 0); },
+    who(id, v) { S.who = id; if (v) S.view = v; render(true); },
     day(d) { S.day = Math.min(H.DAYS, Math.max(1, d)); render(); },
-    range(r) { S.range = r; render(); },
-    slide(d) { S.day = d; $('mdl').textContent = 'MISSION DAY ' + d; $('lsl').textContent = mmss(H.lightSec(d)); renderSide(); $('view').innerHTML = V[S.view](cur()); },
-    checkin, pvtTap, save, close, send, donki, demo
+    slide(d) { S.day = d; $('mdl').textContent = 'MD ' + d; $('lsl').textContent = mmss(LS(d)); $('crewp').innerHTML = pills(); renderView(); },
+    story() { S.who = 'chen'; S.day = 140; S.view = 'today'; render(true); window.scrollTo(0, 0); },
+    hwin(r) { S.hwin = r; renderView(); }, hmode(m) { S.hmode = m; renderView(); },
+    metric(k) { S.metric = k; S.view = 'trends'; render(true); window.scrollTo(0, 0); },
+    tpause() { T.paused = !T.paused; tourBar(); }, tnext() { T.paused = false; T.skip = true; }, tjump() { T.paused = false; T.jump = 2; T.skip = true; },
+    checkin, pvtTap, save, close, send, donki, tour
   };
-  render();
+  render(true);
   if (!S.donki || Date.now() - S.donki.at > 6 * 36e5) donki();
 })();
 </script>
